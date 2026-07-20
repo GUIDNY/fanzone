@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FanZone – פרוטוטייפ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0D12;
+    --surface:#151922;
+    --surface-2:#1D2330;
+    --border:#2A3140;
+    --text:#F7F8FA;
+    --text-2:#A8B0BF;
+    --live:#24C875;
+    --warn:#F5C451;
+    --err:#EF5350;
+    --accent:#3E7BFA;
+    --accent-dim:#3E7BFA33;
+    --accent-glow:#3E7BFA55;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(60% 50% at 18% 8%, #10151f 0%, transparent 60%),
+      radial-gradient(70% 60% at 85% 92%, #0e1420 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Heebo', sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+    padding:48px 16px;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.num{font-family:'Rubik','Heebo',sans-serif;}
+
+  /* ---------- prototype chrome (not app UI) ---------- */
+  .lab-label{
+    color:var(--text-2);
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    text-align:center;
+  }
+  .lab-title{
+    text-align:center;
+  }
+  .lab-title .brand{
+    font-family:'Rubik',sans-serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:-0.01em;
+  }
+  .lab-title .brand span{color:var(--accent);}
+  .lab-title .sub{color:var(--text-2); font-size:13px; margin-top:2px;}
+
+  .phase-switch{
+    display:flex;
+    gap:6px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    padding:5px;
+    border-radius:999px;
+  }
+  .phase-switch button{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Heebo',sans-serif; font-weight:600; font-size:12.5px;
+    padding:8px 14px; border-radius:999px;
+    background:transparent; color:var(--text-2);
+    transition:background .18s ease, color .18s ease;
+  }
+  .phase-switch button.active{background:var(--accent); color:#fff;}
+  .phase-switch button:not(.active):hover{color:var(--text); background:var(--surface-2);}
+
+  /* ---------- phone rig ---------- */
+  .rig{
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .glow{
+    position:absolute;
+    width:520px; height:520px;
+    border-radius:50%;
+    background:radial-gradient(circle, var(--accent-glow) 0%, transparent 68%);
+    filter:blur(10px);
+    z-index:0;
+    pointer-events:none;
+    transition:background .4s ease;
+  }
+  .rig[data-phase="live"] .glow{
+    background:radial-gradient(circle, #24C87555 0%, transparent 68%);
+  }
+
+  .phone{
+    position:relative;
+    z-index:1;
+    width:390px; height:844px;
+    background:#000;
+    border-radius:52px;
+    padding:14px;
+    box-shadow:
+      0 0 0 2px #2a3140,
+      0 40px 80px -20px rgba(0,0,0,.7),
+      0 10px 30px -8px rgba(0,0,0,.6);
+  }
+  .screen-shell{
+    position:relative;
+    width:100%; height:100%;
+    background:var(--bg);
+    border-radius:38px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:120px; height:26px; background:#000; border-radius:16px;
+    z-index:50;
+  }
+  .statusbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 26px 4px;
+    font-family:'Heebo',sans-serif; font-weight:600; font-size:14px;
+    color:var(--text);
+    flex-shrink:0;
+    direction:ltr;
+  }
+  .statusbar .icons{display:flex; gap:5px; align-items:center;}
+  .statusbar svg{display:block;}
+
+  .content{
+    flex:1;
+    overflow-y:auto;
+    padding-bottom:12px;
+    scrollbar-width:none;
+  }
+  .content::-webkit-scrollbar{display:none;}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* ---------- tab bar ---------- */
+  .tabbar{
+    flex-shrink:0;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-around;
+    padding:8px 6px 20px;
+    background:linear-gradient(to top, var(--surface) 60%, transparent);
+    border-top:1px solid var(--border);
+    position:relative;
+    z-index:40;
+  }
+  .tab-btn{
+    appearance:none; border:none; background:none; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    color:var(--text-2);
+    font-family:'Heebo',sans-serif; font-weight:600; font-size:10.5px;
+    width:60px; padding-top:6px;
+    transition:color .15s ease;
+  }
+  .tab-btn.active{color:var(--accent);}
+  .tab-btn svg{width:22px; height:22px;}
+  .tab-btn.match{
+    width:64px; margin-top:-22px;
+  }
+  .tab-btn.match .match-dot{
+    width:54px; height:54px; border-radius:50%;
+    background:linear-gradient(155deg, var(--accent), var(--accent-shade, #2657c4));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 18px -4px var(--accent-glow), 0 0 0 5px var(--bg);
+  }
+  .tab-btn.match svg{width:24px; height:24px; color:var(--accent-ink, #fff);}
+  .tab-btn.match.active .match-dot{box-shadow:0 8px 22px -2px var(--accent-glow), 0 0 0 5px var(--bg);}
+
+  /* ---------- shared bits ---------- */
+  .px{padding-left:18px; padding-right:18px;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 18px 14px;
+  }
+  .greet{font-size:13px; color:var(--text-2);}
+  .greet strong{color:var(--text); font-weight:600;}
+  .icon-btn{
+    width:38px; height:38px; border-radius:12px;
+    background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-2); position:relative; cursor:pointer;
+  }
+  .icon-btn svg{width:18px; height:18px;}
+  .dot-badge{
+    position:absolute; top:8px; left:8px;
+    width:7px; height:7px; border-radius:50%;
+    background:var(--err); border:1.5px solid var(--bg);
+  }
+
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin:22px 18px 12px;
+  }
+  .section-head h2{font-size:16px; font-weight:700;}
+  .section-head a{font-size:12.5px; color:var(--accent); font-weight:600; text-decoration:none;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+  }
+
+  .pill{
+    padding:6px 12px; border-radius:999px; font-size:12px; font-weight:600;
+    background:var(--surface-2); color:var(--text-2); border:1px solid var(--border);
+    white-space:nowrap; cursor:default;
+  }
+  .filters .pill{cursor:pointer;}
+  .pill.on{background:var(--accent); color:var(--accent-ink, #fff); border-color:var(--accent);}
+
+  .badge{
+    font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:6px;
+    background:var(--accent-dim); color:var(--accent);
+  }
+  .badge.mod{background:#F5C45122; color:var(--warn);}
+
+  .crest{
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Rubik',sans-serif; font-weight:800; font-size:13px;
+    flex-shrink:0;
+  }
+  .crest.home{background:linear-gradient(155deg, var(--accent), var(--accent-shade, #24407e)); color:var(--accent-ink, #fff);}
+  .crest.away{background:linear-gradient(155deg, var(--rival, #565f70), var(--rival-shade, #333a47)); color:var(--rival-ink, #fff);}
+  .crest.sm{width:28px; height:28px; font-size:10px;}
+  .crest.lg{width:56px; height:56px; font-size:18px;}
+
+  .avatar{
+    width:34px; height:34px; border-radius:50%;
+    background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:12.5px; color:var(--text-2); flex-shrink:0;
+  }
+
+  /* ---------- HOME: next match card ---------- */
+  .match-card{
+    margin:0 18px; border-radius:20px; padding:18px;
+    background:linear-gradient(165deg, var(--surface-2), var(--surface));
+    border:1px solid var(--border);
+    position:relative; overflow:hidden;
+  }
+  .match-card::before{
+    content:""; position:absolute; top:0; right:0; left:0; height:3px;
+    background:linear-gradient(90deg, var(--accent), transparent 85%);
+  }
+  .match-meta{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .match-meta .comp{font-size:11.5px; color:var(--text-2); font-weight:600;}
+  .countdown{font-size:11.5px; color:var(--warn); font-weight:700; font-family:'Rubik',sans-serif;}
+
+  .teams-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .team-block{flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .team-block .tname{font-size:13px; font-weight:600; text-align:center;}
+  .vs-block{display:flex; flex-direction:column; align-items:center; gap:2px; min-width:70px;}
+  .vs-block .time{font-family:'Rubik',sans-serif; font-weight:800; font-size:22px; font-variant-numeric:tabular-nums;}
+  .vs-block .date{font-size:11px; color:var(--text-2);}
+
+  .venue-row{
+    display:flex; align-items:center; gap:6px; justify-content:center;
+    margin-top:14px; font-size:12px; color:var(--text-2);
+  }
+  .venue-row svg{width:13px; height:13px;}
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    height:48px; border-radius:14px; border:none; cursor:pointer;
+    font-family:'Heebo',sans-serif; font-weight:700; font-size:14.5px;
+    width:100%;
+  }
+  .btn.primary{background:var(--accent); color:var(--accent-ink, #fff);}
+  .btn.live{background:var(--live); color:#06170e;}
+  .btn.ghost{background:transparent; color:var(--text-2); border:1px solid var(--border); height:auto; padding:10px 0;}
+  .btn-row{display:flex; flex-direction:column; gap:8px; margin-top:16px;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+
+  .pulse-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--live);
+    box-shadow:0 0 0 0 rgba(36,200,117,.6);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(36,200,117,.55);}
+    70%{box-shadow:0 0 0 9px rgba(36,200,117,0);}
+    100%{box-shadow:0 0 0 0 rgba(36,200,117,0);}
+  }
+  @media (prefers-reduced-motion: reduce){.pulse-dot{animation:none;}}
+
+  .live-strip{
+    display:flex; align-items:center; gap:6px; margin-bottom:14px;
+    font-size:11.5px; font-weight:700; color:var(--live);
+  }
+
+  .live-score{
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    margin:6px 0 4px;
+  }
+  .live-score .num{font-size:44px; font-weight:800; font-variant-numeric:tabular-nums;}
+  .live-score .sep{font-size:30px; color:var(--text-2); font-weight:500;}
+
+  .fan-count{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:12px; color:var(--text-2); margin-top:10px;
+  }
+
+  /* poll */
+  .poll-card{margin:0 18px; padding:16px;}
+  .poll-q{font-size:13.5px; font-weight:600; margin-bottom:12px;}
+  .poll-opt{
+    position:relative; border:1px solid var(--border); border-radius:10px;
+    padding:9px 12px; margin-bottom:8px; overflow:hidden; font-size:13px; font-weight:600;
+  }
+  .poll-fill{
+    position:absolute; top:0; bottom:0; right:0;
+    background:var(--accent-dim); z-index:0;
+  }
+  .poll-opt .row{position:relative; z-index:1; display:flex; justify-content:space-between;}
+  .poll-opt .row span:last-child{color:var(--text-2); font-weight:700; font-variant-numeric:tabular-nums;}
+
+  /* horizontal scroller */
+  .hscroll{display:flex; gap:12px; overflow-x:auto; padding:0 18px 4px; scrollbar-width:none;}
+  .hscroll::-webkit-scrollbar{display:none;}
+
+  .news-card{
+    flex:0 0 220px; border-radius:14px; overflow:hidden; background:var(--surface); border:1px solid var(--border);
+  }
+  .news-thumb{
+    height:110px;
+    background:linear-gradient(140deg, #1c2740, #0f1420 70%);
+    position:relative;
+  }
+  .news-thumb .tag{
+    position:absolute; top:8px; right:8px;
+    font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px;
+    background:rgba(0,0,0,.5); color:var(--text);
+  }
+  .news-body{padding:10px 12px 12px;}
+  .news-body .t{font-size:12.5px; font-weight:700; line-height:1.4;}
+  .news-body .m{font-size:11px; color:var(--text-2); margin-top:5px;}
+
+  .table-card{margin:0 18px; padding:6px 4px;}
+  .trow{display:flex; align-items:center; gap:10px; padding:8px 12px; font-size:12.5px;}
+  .trow .pos{width:16px; text-align:center; color:var(--text-2); font-weight:700; font-variant-numeric:tabular-nums;}
+  .trow .name{flex:1; font-weight:600;}
+  .trow .pts{font-weight:800; font-variant-numeric:tabular-nums; font-family:'Rubik',sans-serif;}
+  .trow.me{background:var(--accent-dim); border-radius:10px;}
+
+  .task-card{
+    margin:0 18px; padding:14px 16px; display:flex; align-items:center; gap:12px;
+  }
+  .task-icon{
+    width:38px; height:38px; border-radius:11px; background:var(--accent-dim);
+    display:flex; align-items:center; justify-content:center; color:var(--accent); flex-shrink:0;
+  }
+  .task-icon svg{width:18px; height:18px;}
+  .progress-track{height:6px; border-radius:999px; background:var(--surface-2); margin-top:6px; overflow:hidden;}
+  .progress-fill{height:100%; background:var(--accent); border-radius:999px;}
+
+  /* ---------- match center ---------- */
+  .subtabs{display:flex; gap:8px; padding:2px 18px 16px; overflow-x:auto; scrollbar-width:none;}
+  .subtabs::-webkit-scrollbar{display:none;}
+
+  .stat-row{display:flex; margin:0 18px 14px; border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .stat-cell{flex:1; text-align:center; padding:12px 6px; border-left:1px solid var(--border);}
+  .stat-cell:last-child{border-left:none;}
+  .stat-cell .v{font-family:'Rubik',sans-serif; font-weight:800; font-size:17px;}
+  .stat-cell .l{font-size:10.5px; color:var(--text-2); margin-top:2px;}
+
+  .form-dots{display:flex; gap:5px; justify-content:center; margin-top:6px;}
+  .fdot{width:20px; height:20px; border-radius:6px; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; color:#fff;}
+  .fdot.w{background:var(--live); color:#06170e;}
+  .fdot.d{background:var(--surface-2); color:var(--text-2); border:1px solid var(--border);}
+  .fdot.l{background:var(--err);}
+
+  .lineup-pitch{
+    margin:0 18px; border-radius:16px; padding:16px 10px;
+    background:
+      repeating-linear-gradient(0deg, #12241a 0 34px, #102018 34px 68px);
+    border:1px solid var(--border);
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .lrow{display:flex; justify-content:center; gap:14px;}
+  .lplayer{display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .ljersey{
+    width:30px; height:30px; border-radius:50%; background:var(--surface);
+    border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; font-family:'Rubik',sans-serif;
+  }
+  .lplayer .ln{font-size:9.5px; color:var(--text); background:rgba(0,0,0,.45); padding:1px 5px; border-radius:5px;}
+
+  .timeline{margin:0 18px;}
+  .tl-item{display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border);}
+  .tl-item:last-child{border-bottom:none;}
+  .tl-min{width:34px; font-family:'Rubik',sans-serif; font-weight:800; font-size:12.5px; color:var(--text-2); flex-shrink:0; text-align:center; font-variant-numeric:tabular-nums;}
+  .tl-icon{width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .tl-icon svg{width:13px; height:13px;}
+  .tl-icon.goal{background:#24C87522; color:var(--live);}
+  .tl-icon.card{background:#F5C45122; color:var(--warn);}
+  .tl-icon.sub{background:#3E7BFA22; color:var(--accent);}
+  .tl-icon.half{background:var(--surface-2); color:var(--text-2);}
+  .tl-txt{font-size:12.5px; font-weight:600;}
+  .tl-sub{font-size:11px; color:var(--text-2); margin-top:1px;}
+
+  /* live chat */
+  .chat-pinned{
+    margin:0 18px 10px; padding:10px 12px; border-radius:12px;
+    background:#F5C45114; border:1px solid #F5C45140;
+    display:flex; gap:8px; align-items:flex-start; font-size:11.5px;
+  }
+  .chat-pinned svg{width:14px; height:14px; color:var(--warn); flex-shrink:0; margin-top:1px;}
+  .chat-list{margin:0 18px; display:flex; flex-direction:column; gap:12px;}
+  .chat-msg{display:flex; gap:9px;}
+  .chat-name{font-size:12px; font-weight:700;}
+  .chat-name.mod{color:var(--warn);}
+  .chat-txt{font-size:12.5px; color:var(--text); margin-top:2px; line-height:1.4;}
+  .chat-reacts{display:flex; gap:5px; margin-top:6px;}
+  .chat-reacts span{font-size:11px; background:var(--surface); border:1px solid var(--border); padding:2px 7px; border-radius:999px;}
+
+  .quick-emoji{display:flex; gap:8px; padding:10px 18px 4px;}
+  .quick-emoji button{
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--border);
+    background:var(--surface); font-size:17px; cursor:pointer;
+  }
+  .chat-input-row{
+    display:flex; gap:8px; align-items:center; padding:10px 18px 4px;
+  }
+  .chat-input{
+    flex:1; height:42px; border-radius:999px; background:var(--surface-2);
+    border:1px solid var(--border); padding:0 16px; color:var(--text); font-size:12.5px;
+    font-family:'Heebo',sans-serif;
+  }
+  .chat-input::placeholder{color:var(--text-2);}
+  .chat-input:focus{outline:none; border-color:#4a5468;}
+  .send-btn{
+    width:42px; height:42px; border-radius:50%; background:var(--accent); border:none;
+    display:flex; align-items:center; justify-content:center; color:var(--accent-ink, #fff); flex-shrink:0;
+  }
+  .send-btn svg{width:18px; height:18px;}
+
+  /* ratings */
+  .final-score-card{margin:0 18px; padding:20px; text-align:center;}
+  .final-score-card .comp{font-size:11.5px; color:var(--text-2); font-weight:600; margin-bottom:10px;}
+  .rate-list{margin:14px 18px 0; display:flex; flex-direction:column; gap:10px;}
+  .rate-row{
+    display:flex; align-items:center; gap:10px; padding:11px 12px;
+  }
+  .rate-info{flex:1;}
+  .rate-name{font-size:13px; font-weight:700;}
+  .rate-pos{font-size:11px; color:var(--text-2);}
+  .rate-score{
+    width:34px; height:34px; border-radius:10px; background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-family:'Rubik',sans-serif; font-size:14px;
+  }
+  .mvp-star{color:var(--warn);}
+
+  /* community */
+  .filters{display:flex; gap:8px; padding:2px 18px 14px; overflow-x:auto; scrollbar-width:none;}
+  .filters::-webkit-scrollbar{display:none;}
+  .post{margin:0 18px 14px; padding:14px; border-radius:16px;}
+  .post-head{display:flex; align-items:center; gap:9px;}
+  .post-user{flex:1;}
+  .post-name-row{display:flex; align-items:center; gap:6px;}
+  .post-name{font-size:12.5px; font-weight:700;}
+  .post-time{font-size:11px; color:var(--text-2); margin-top:1px;}
+  .post-topic{font-size:10.5px; color:var(--accent); font-weight:700; margin-bottom:6px; margin-top:10px;}
+  .post-text{font-size:13px; line-height:1.55; color:var(--text);}
+  .post-media{
+    margin-top:10px; height:150px; border-radius:12px;
+    background:linear-gradient(140deg, #1c2740, #10151f 75%);
+  }
+  .post-actions{display:flex; gap:18px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);}
+  .post-actions button{
+    background:none; border:none; display:flex; align-items:center; gap:5px;
+    color:var(--text-2); font-size:12px; font-weight:600; cursor:pointer;
+  }
+  .post-actions svg{width:16px; height:16px;}
+
+  .fab{
+    position:absolute; bottom:96px; left:18px;
+    width:52px; height:52px; border-radius:50%; background:var(--accent);
+    display:flex; align-items:center; justify-content:center; color:var(--accent-ink, #fff);
+    box-shadow:0 10px 20px -4px var(--accent-glow); z-index:30; border:none;
+  }
+  .fab svg{width:22px; height:22px;}
+
+  /* fan points */
+  .fp-hero{margin:0 18px; padding:22px 18px; text-align:center; position:relative; overflow:hidden;}
+  .fp-hero::after{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(60% 80% at 50% 0%, var(--accent-dim), transparent 70%);
+    pointer-events:none;
+  }
+  .fp-level{font-size:12px; color:var(--text-2); font-weight:600; position:relative;}
+  .fp-level b{color:var(--accent);}
+  .fp-points{font-family:'Rubik',sans-serif; font-weight:900; font-size:38px; margin:6px 0 2px; position:relative; font-variant-numeric:tabular-nums;}
+  .fp-next{font-size:11.5px; color:var(--text-2); position:relative;}
+  .fp-progress{margin-top:12px; position:relative;}
+
+  .streak-row{display:flex; gap:6px; margin:0 18px 4px; justify-content:space-between;}
+  .streak-day{flex:1; text-align:center;}
+  .streak-day .d{
+    width:100%; aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface); border:1px solid var(--border); font-size:11px; color:var(--text-2); font-weight:700;
+  }
+  .streak-day .d.on{background:var(--live); color:#06170e; border-color:var(--live);}
+  .streak-day .lbl{font-size:9.5px; color:var(--text-2); margin-top:4px;}
+
+  .chal-card{margin:0 18px; padding:13px 14px; display:flex; align-items:center; gap:12px;}
+  .chal-body{flex:1;}
+  .chal-title{font-size:12.5px; font-weight:700;}
+  .chal-reward{font-size:11px; color:var(--live); font-weight:700; margin-top:2px;}
+
+  .badge-grid{display:flex; gap:12px; padding:2px 18px; overflow-x:auto; scrollbar-width:none;}
+  .badge-grid::-webkit-scrollbar{display:none;}
+  .badge-item{flex:0 0 76px; text-align:center;}
+  .badge-icon{
+    width:60px; height:60px; border-radius:16px; margin:0 auto 6px;
+    background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color:var(--accent);
+  }
+  .badge-icon svg{width:26px; height:26px;}
+  .badge-item .n{font-size:10px; color:var(--text-2); line-height:1.3;}
+
+  .txn-row{display:flex; align-items:center; gap:10px; padding:10px 18px;}
+  .txn-icon{width:32px; height:32px; border-radius:9px; background:var(--surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-2); flex-shrink:0;}
+  .txn-icon svg{width:15px; height:15px;}
+  .txn-t{flex:1; font-size:12px; font-weight:600;}
+  .txn-time{font-size:10.5px; color:var(--text-2);}
+  .txn-pts{font-family:'Rubik',sans-serif; font-weight:800; font-size:13px; color:var(--live); font-variant-numeric:tabular-nums;}
+
+  /* profile */
+  .profile-head{padding:8px 18px 18px; text-align:center;}
+  .profile-avatar{
+    width:84px; height:84px; border-radius:50%; margin:0 auto 10px;
+    background:linear-gradient(155deg, var(--accent), var(--accent-shade, #24407e));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Rubik',sans-serif; font-weight:800; font-size:26px; color:var(--accent-ink, #fff);
+    border:3px solid var(--warn);
+  }
+  .profile-name{font-size:17px; font-weight:800;}
+  .profile-sub{font-size:12.5px; color:var(--text-2); margin-top:3px; display:flex; align-items:center; justify-content:center; gap:5px;}
+  .verified{color:var(--accent);}
+  .verified svg{width:14px; height:14px;}
+
+  .stat-strip{display:flex; margin:16px 18px; border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .stat-strip .cell{flex:1; text-align:center; padding:12px 4px; border-left:1px solid var(--border);}
+  .stat-strip .cell:last-child{border-left:none;}
+  .stat-strip .v{font-family:'Rubik',sans-serif; font-weight:800; font-size:15px;}
+  .stat-strip .l{font-size:10px; color:var(--text-2); margin-top:2px;}
+
+  .prof-tabs{display:flex; gap:22px; margin:4px 18px 12px; border-bottom:1px solid var(--border);}
+  .prof-tab{padding:8px 0; font-size:12.5px; font-weight:700; color:var(--text-2); border-bottom:2px solid transparent; cursor:pointer;}
+  .prof-tab.on{color:var(--text); border-color:var(--accent);}
+
+  .menu-row{
+    display:flex; align-items:center; gap:12px; padding:13px 18px; cursor:pointer;
+    border-bottom:1px solid var(--border); font-size:13px; font-weight:600;
+  }
+  .menu-row svg{width:17px; height:17px; color:var(--text-2);}
+  .menu-row.danger{color:var(--err);}
+  .menu-row.danger svg{color:var(--err);}
+
+  footer.note{
+    color:var(--text-2); font-size:12px; text-align:center; max-width:390px; line-height:1.6;
+  }
+
+  /* ---------- real mobile viewport: fill the screen, drop the desktop mockup chrome ---------- */
+  @media (max-width: 520px){
+    html, body{ height:100dvh; overflow:hidden; }
+    body{ padding:0; gap:4px; justify-content:flex-start; }
+    .lab-title{ padding:8px 12px 0; flex-shrink:0; }
+    .lab-title .sub{ display:none; }
+    .lab-title .brand{ font-size:14px; }
+    .phase-switch{ flex-shrink:0; transform:scale(.88); }
+    footer.note{ display:none; }
+    .rig{ flex:1; width:100%; min-height:0; }
+    .glow{ display:none; }
+    .phone{
+      width:100%; max-width:460px; height:100%; margin:0 auto;
+      padding:0; border-radius:0; box-shadow:none; background:transparent;
+    }
+    .screen-shell{ border-radius:0; }
+    .notch{ display:none; }
+    .statusbar{ padding-top:calc(10px + env(safe-area-inset-top)); }
+    .tabbar{ padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
+  }
+
+  /* ---------- onboarding: club picker ---------- */
+  .screen-shell.pre-onboard .tabbar{display:none;}
+  .ob-head{padding:38px 22px 16px; text-align:center;}
+  .ob-badge{
+    display:inline-block; font-family:'Rubik',sans-serif; font-weight:800; font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--text-2);
+    border:1px solid var(--border); padding:5px 12px; border-radius:999px; margin-bottom:18px;
+  }
+  .ob-head h2{font-size:20px; font-weight:800; margin-bottom:8px; text-wrap:balance;}
+  .ob-head p{font-size:13px; color:var(--text-2); line-height:1.55; max-width:280px; margin:0 auto;}
+  .ob-search-wrap{padding:4px 18px 12px;}
+  .ob-search{
+    width:100%; height:44px; border-radius:12px; background:var(--surface);
+    border:1px solid var(--border); color:var(--text); padding:0 14px; font-size:13.5px;
+    font-family:'Heebo',sans-serif;
+  }
+  .ob-search::placeholder{color:var(--text-2);}
+  .ob-search:focus{outline:none; border-color:#4a5468;}
+  .ob-list{padding:0 18px 110px; display:flex; flex-direction:column; gap:8px;}
+  .ob-row{
+    all:unset;
+    width:100%; box-sizing:border-box; display:flex; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:10px 12px; cursor:pointer; font-family:'Heebo',sans-serif; text-align:right;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .ob-row.sel{border-color:var(--text); background:var(--surface-2);}
+  .ob-crest{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Rubik',sans-serif; font-weight:800; font-size:13px;
+  }
+  .ob-row-text{flex:1; min-width:0;}
+  .ob-name{display:block; font-size:13px; font-weight:700; color:var(--text);}
+  .ob-city{display:block; font-size:11px; color:var(--text-2); margin-top:2px;}
+  .ob-check{
+    width:22px; height:22px; border-radius:50%; border:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:transparent;
+    flex-shrink:0;
+  }
+  .ob-row.sel .ob-check{background:var(--text); border-color:var(--text); color:var(--bg);}
+  .ob-empty{padding:30px 18px; text-align:center; color:var(--text-2); font-size:13px;}
+  .ob-footer{
+    position:sticky; bottom:0; left:0; right:0;
+    padding:14px 18px 22px;
+    background:linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  .ob-footer .btn.primary:disabled{opacity:.4; cursor:not-allowed;}
+
+  /* ---------- interaction primitives ---------- */
+  .toast{
+    position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(12px);
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    font-size:12.5px; font-weight:600; padding:10px 16px; border-radius:999px;
+    box-shadow:0 12px 24px -8px rgba(0,0,0,.5); z-index:300;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    white-space:nowrap; max-width:88%; overflow:hidden; text-overflow:ellipsis;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .sheet-backdrop{
+    position:absolute; inset:0; background:rgba(4,5,8,.6); z-index:210;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .sheet-backdrop.show{opacity:1; pointer-events:auto;}
+  .sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:220;
+    background:var(--surface); border:1px solid var(--border); border-bottom:none;
+    border-radius:22px 22px 0 0; max-height:82%; display:flex; flex-direction:column;
+    transform:translateY(100%); transition:transform .25s cubic-bezier(.32,.72,0,1);
+    box-shadow:0 -20px 40px -10px rgba(0,0,0,.5);
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet-grip{width:36px; height:4px; border-radius:999px; background:var(--border); margin:10px auto 4px; flex-shrink:0;}
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; padding:8px 18px 12px; flex-shrink:0;}
+  .sheet-head h3{font-size:15px; font-weight:800;}
+  .sheet-close{
+    width:30px; height:30px; border-radius:50%; background:var(--surface-2); border:1px solid var(--border);
+    color:var(--text-2); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .sheet-body{padding:0 18px 22px; overflow-y:auto; scrollbar-width:none;}
+  .sheet-body::-webkit-scrollbar{display:none;}
+  .sheet-body textarea{
+    width:100%; min-height:96px; resize:none; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:14px; padding:12px; color:var(--text); font-family:'Heebo',sans-serif; font-size:13.5px; line-height:1.5;
+  }
+  .sheet-body textarea:focus, .sheet-body input:focus{outline:none; border-color:#4a5468;}
+  .sheet-row{
+    display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--border); font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .sheet-row:last-child{border-bottom:none;}
+  .sheet-row svg{width:18px; height:18px; color:var(--text-2); flex-shrink:0;}
+  .sheet-row.danger{color:var(--err);}
+  .sheet-row.danger svg{color:var(--err);}
+  .chip-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+  .chip{
+    padding:7px 13px; border-radius:999px; font-size:12px; font-weight:600;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); cursor:pointer;
+  }
+  .chip.sel{background:var(--accent); color:var(--accent-ink,#fff); border-color:var(--accent);}
+  .toggle{
+    width:42px; height:24px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border);
+    position:relative; cursor:pointer; flex-shrink:0;
+  }
+  .toggle::after{
+    content:""; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%;
+    background:var(--text-2); transition:right .18s ease, background .18s ease;
+  }
+  .toggle.on{background:var(--accent-dim); border-color:var(--accent);}
+  .toggle.on::after{right:20px; background:var(--accent);}
+  .comment-item{display:flex; gap:9px; padding:10px 0; border-bottom:1px solid var(--border);}
+  .comment-item:last-child{border-bottom:none;}
+  .comment-name{font-size:12px; font-weight:700;}
+  .comment-txt{font-size:12.5px; color:var(--text); margin-top:2px; line-height:1.45;}
+  .comment-input-row{display:flex; gap:8px; align-items:center; padding-top:10px; position:sticky; bottom:0; background:var(--surface);}
+  .comment-input-row input{
+    flex:1; height:40px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border);
+    padding:0 14px; color:var(--text); font-size:12.5px; font-family:'Heebo',sans-serif;
+  }
+  .notif-item{display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--border);}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-icon{width:34px; height:34px; border-radius:10px; background:var(--accent-dim); color:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .notif-icon svg{width:16px; height:16px;}
+  .notif-txt{font-size:12.5px; font-weight:600; line-height:1.4;}
+  .notif-time{font-size:10.5px; color:var(--text-2); margin-top:2px;}
+  .notif-item.unread{position:relative;}
+  .notif-item.unread::after{content:""; position:absolute; top:14px; left:0; width:7px; height:7px; border-radius:50%; background:var(--err);}
+
+  .confirm-box{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.94); z-index:260;
+    width:82%; background:var(--surface-2); border:1px solid var(--border); border-radius:18px; padding:20px 18px;
+    opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease; text-align:center;
+  }
+  .confirm-box.show{opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1);}
+  .confirm-box h3{font-size:14.5px; font-weight:800; margin-bottom:6px;}
+  .confirm-box p{font-size:12.5px; color:var(--text-2); line-height:1.5; margin-bottom:16px;}
+  .confirm-box .row{display:flex; gap:8px;}
+  .confirm-box .btn{height:42px; font-size:13px;}
+
+  .poll-opt{cursor:pointer;}
+  .poll-opt.disabled{cursor:default;}
+  .poll-opt.voted{border-color:var(--accent);}
+  .post-actions button.active svg{color:var(--accent); fill:var(--accent-dim);}
+  .post.hiding{animation:fadeOut .25s ease forwards;}
+  @keyframes fadeOut{to{opacity:0; transform:scale(.97); height:0; margin:0; padding:0; border-width:0;}}
+  .subtabs .pill{cursor:pointer;}
+  .subpanel{display:none;}
+  .subpanel.active{display:block;}
+  .task-card{cursor:pointer;}
+  .task-card.done{opacity:.6;}
+  .chal-card{cursor:pointer;}
+  .chal-card.done{opacity:.55;}
+  .chal-card.done .chal-title::after{content:" ✓"; color:var(--live);}
+  .rate-score{cursor:pointer; transition:background .15s ease;}
+  .rate-score.picked{background:var(--accent-dim); border-color:var(--accent); color:var(--accent);}
+  .mvp-star{cursor:pointer;}
+  .mvp-star.picked{color:var(--warn); text-shadow:0 0 10px rgba(245,196,81,.6);}
+  .chat-msg.me .chat-name{color:var(--accent);}
+  .badge-item{cursor:pointer;}
+  .news-card{cursor:pointer;}
+  .task-card{cursor:pointer;}
+  .match-card .btn, .poll-opt, .badge-item, .news-card, .task-card, .chal-card{-webkit-tap-highlight-color:transparent;}
+</style>
+</head>
+<body>
+
+  <div class="lab-title">
+    <div class="brand">Fan<span>Zone</span> · פרוטוטייפ MVP</div>
+    <div class="sub">מרכז המשחק, קהילה, Fan Points ופרופיל — לפי המסמך המלא</div>
+  </div>
+
+  <div class="phase-switch" id="phaseSwitch">
+    <button data-phase="before" class="active">לפני משחק</button>
+    <button data-phase="live">משחק חי</button>
+    <button data-phase="after">אחרי משחק</button>
+  </div>
+
+  <div class="rig" id="rig" data-phase="before">
+    <div class="glow"></div>
+    <div class="phone">
+      <div class="screen-shell pre-onboard" id="shell">
+        <div class="notch"></div>
+        <div class="statusbar">
+          <span>9:41</span>
+          <div class="icons">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="0.5" fill="currentColor"/><rect x="4.5" y="4" width="3" height="7" rx="0.5" fill="currentColor"/><rect x="9" y="2" width="3" height="9" rx="0.5" fill="currentColor"/><rect x="13.5" y="0" width="3" height="11" rx="0.5" fill="currentColor"/></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0.5" y="0.5" width="19" height="10" rx="2.5" stroke="currentColor"/><rect x="2" y="2" width="16" height="7" rx="1.5" fill="currentColor"/><rect x="20.5" y="3.5" width="1.5" height="4" rx="0.75" fill="currentColor"/></svg>
+          </div>
+        </div>
+
+        <div class="content" id="content">
+
+          <!-- ============ ONBOARDING: CLUB SELECTION ============ -->
+          <section class="screen active" data-screen="onboarding">
+            <div class="ob-head">
+              <div class="ob-badge">שלב 1 מתוך 1</div>
+              <h2>בחרו את הקבוצה שלכם</h2>
+              <p>כל 14 קבוצות ליגת העל. ברגע שתבחרו, נצבע עבורכם את כל האפליקציה בצבעי הקבוצה.</p>
+            </div>
+            <div class="ob-search-wrap">
+              <input id="obSearch" class="ob-search" type="text" placeholder="חיפוש קבוצה או עיר…">
+            </div>
+            <div class="ob-list" id="obList"></div>
+            <div class="ob-footer">
+              <button class="btn primary" id="obConfirm" disabled>המשך</button>
+            </div>
+          </section>
+
+          <!-- ============ HOME ============ -->
+          <section class="screen" data-screen="home">
+            <div class="topbar">
+              <div class="greet">ערב טוב, <strong>עידן</strong> 👋</div>
+              <div style="display:flex; gap:8px;">
+                <div class="icon-btn" data-action="bell" id="bellBtn"><span class="dot-badge" id="bellDot"></span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M9.5 20a2.5 2.5 0 005 0"/></svg>
+                </div>
+                <div class="icon-btn profile-avatar" data-action="goto-profile" style="width:38px;height:38px;font-size:12px;border-width:2px;">ע</div>
+              </div>
+            </div>
+
+            <!-- BEFORE -->
+            <div data-phase-el="before">
+              <div class="match-card">
+                <div class="match-meta">
+                  <span class="comp">ליגת העל · מחזור 24</span>
+                  <span class="countdown">בעוד יומיים</span>
+                </div>
+                <div class="teams-row">
+                  <div class="team-block">
+                    <div class="crest home lg js-home-crest">יר</div>
+                    <div class="tname js-home-name">הפועל ירקון</div>
+                  </div>
+                  <div class="vs-block">
+                    <div class="time">20:30</div>
+                    <div class="date">חמישי, 23.7</div>
+                  </div>
+                  <div class="team-block">
+                    <div class="crest away lg js-away-crest">מד</div>
+                    <div class="tname js-away-name">מכבי דרום</div>
+                  </div>
+                </div>
+                <div class="venue-row">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                  <span class="js-venue">אצטדיון זבלוני, ירקונה</span>
+                </div>
+                <div class="btn-row">
+                  <button class="btn primary" data-action="cta-room">כניסה לחדר המשחק</button>
+                  <button class="btn ghost" data-action="cta-info">כל המידע למשחק</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- LIVE -->
+            <div data-phase-el="live">
+              <div class="match-card">
+                <div class="live-strip"><span class="pulse-dot"></span> המשחק חי · דקה 63</div>
+                <div class="teams-row">
+                  <div class="team-block"><div class="crest home js-home-crest">יר</div><div class="tname js-home-short">ירקון</div></div>
+                  <div class="live-score"><span class="num">1</span><span class="sep">:</span><span class="num">0</span></div>
+                  <div class="team-block"><div class="crest away js-away-crest">מד</div><div class="tname js-away-short">דרום</div></div>
+                </div>
+                <div style="text-align:center; font-size:12px; color:var(--text-2); margin-top:6px;">⚽ שער אחרון: אריאל בן דוד, דקה 58</div>
+                <div class="fan-count">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  4,812 אוהדים בחדר המשחק
+                </div>
+                <div class="btn-row"><button class="btn live" data-action="cta-room"><span class="pulse-dot" style="background:#06170e; box-shadow:none;"></span> כניסה לחדר המשחק החי</button></div>
+              </div>
+            </div>
+
+            <!-- AFTER -->
+            <div data-phase-el="after">
+              <div class="match-card">
+                <div class="match-meta"><span class="comp">ליגת העל · מחזור 24 · הסתיים</span></div>
+                <div class="teams-row">
+                  <div class="team-block"><div class="crest home js-home-crest">יר</div><div class="tname js-home-short">ירקון</div></div>
+                  <div class="live-score"><span class="num">2</span><span class="sep">:</span><span class="num">1</span></div>
+                  <div class="team-block"><div class="crest away js-away-crest">מד</div><div class="tname js-away-short">דרום</div></div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn primary" data-action="cta-ratings">דירוג שחקנים · +30 נק'</button>
+                  <button class="btn ghost" data-action="cta-summary">איך אתם מסכמים את המשחק?</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-head"><h2>סקר היום</h2></div>
+            <div class="poll-card card">
+              <div class="poll-q">מי לדעתכם יסיים גבוה יותר בטבלה השנה?</div>
+              <div class="poll-opt" data-action="vote-poll" data-opt="a"><div class="poll-fill" style="width:61%"></div><div class="row"><span class="js-home-short">הפועל ירקון</span><span>61%</span></div></div>
+              <div class="poll-opt" data-action="vote-poll" data-opt="b"><div class="poll-fill" style="width:24%"></div><div class="row"><span class="js-away-short">מכבי דרום</span><span>24%</span></div></div>
+              <div class="poll-opt" data-action="vote-poll" data-opt="c"><div class="poll-fill" style="width:15%"></div><div class="row"><span>תלוי בפציעות</span><span>15%</span></div></div>
+            </div>
+
+            <div class="section-head"><h2>חדשות אחרונות</h2><a href="#" data-action="news-all">הכל</a></div>
+            <div class="hscroll">
+              <div class="news-card" data-action="open-news" data-news="1">
+                <div class="news-thumb"><span class="tag">רשמי</span></div>
+                <div class="news-body"><div class="t">רשמי: שני שחקנים חדשים מצטרפים לסגל <span class="js-home-short">הפועל ירקון</span></div><div class="m">לפני שעה</div></div>
+              </div>
+              <div class="news-card" data-action="open-news" data-news="2">
+                <div class="news-thumb"><span class="tag">ראיון</span></div>
+                <div class="news-body"><div class="t">קפטן הקבוצה: "אנחנו לא מסתכלים על הטבלה"</div><div class="m">לפני 4 שעות</div></div>
+              </div>
+            </div>
+
+            <div class="section-head"><h2>מהקהילה עכשיו</h2><a href="#" data-action="goto-community">לפיד</a></div>
+            <div class="post card" style="margin:0 18px;" data-post-id="p1">
+              <div class="post-head">
+                <div class="avatar">רא</div>
+                <div class="post-user"><div class="post-name-row"><span class="post-name">רועי אביב</span><span class="badge">קפטן יציע</span></div><div class="post-time">לפני 22 דק'</div></div>
+                <button class="icon-btn" style="width:30px;height:30px;" data-action="more" data-post="p1"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+              </div>
+              <div class="post-text" style="margin-top:10px;">מי שמגיע מהצפון ורוצה טרמפ לאצטדיון ביום חמישי — יש לי 3 מקומות פנויים ברכב 🚗🟦</div>
+              <div class="post-actions">
+                <button data-action="like" data-post="p1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H4l1 10a2 2 0 002 2h10a2 2 0 002-2l1-10h-6z"/></svg><span data-like-count="p1">128</span></button>
+                <button data-action="comment" data-post="p1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-9 8.5A8.5 8.5 0 013 12a8.5 8.5 0 019-8.5 8.38 8.38 0 019 8z"/></svg>34</button>
+              </div>
+            </div>
+
+            <div class="section-head"><h2>טבלת הליגה</h2><a href="#" data-action="table-full">מלאה</a></div>
+            <div class="table-card card">
+              <div class="trow me"><span class="pos">3</span><span class="name js-home-short">הפועל ירקון</span><span class="pts">47</span></div>
+              <div class="trow"><span class="pos">4</span><span class="name js-away-short">מכבי דרום</span><span class="pts">44</span></div>
+              <div class="trow"><span class="pos">5</span><span class="name js-neutral-short">בית"ר הגליל</span><span class="pts">41</span></div>
+            </div>
+
+            <div class="section-head"><h2>משימת השבוע</h2></div>
+            <div class="task-card card" style="margin-bottom:20px;" data-action="task-tap" id="weeklyTaskCard">
+              <div class="task-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg></div>
+              <div style="flex:1;">
+                <div style="font-size:12.5px; font-weight:700;">דרגו 5 שחקנים החודש</div>
+                <div class="progress-track"><div class="progress-fill" id="weeklyTaskFill" style="width:60%"></div></div>
+              </div>
+              <div style="font-size:11px; color:var(--text-2); font-weight:700;" id="weeklyTaskCount">3/5</div>
+            </div>
+          </section>
+
+          <!-- ============ COMMUNITY ============ -->
+          <section class="screen" data-screen="community">
+            <div class="topbar"><h2 style="font-size:18px; font-weight:800;">קהילה</h2>
+              <div class="icon-btn" data-action="search-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+            </div>
+            <div class="ob-search-wrap" id="communitySearchWrap" style="display:none;">
+              <input id="communitySearch" class="ob-search" type="text" placeholder="חיפוש בפיד…">
+            </div>
+            <div class="filters" id="communityFilters">
+              <span class="pill on" data-action="filter" data-filter="all">בשבילך</span>
+              <span class="pill" data-action="filter" data-filter="new">חדש</span>
+              <span class="pill" data-action="filter" data-filter="popular">פופולרי</span>
+              <span class="pill" data-action="filter" data-filter="matches">משחקים</span>
+              <span class="pill" data-action="filter" data-filter="transfers">העברות</span>
+              <span class="pill" data-action="filter" data-filter="photos">תמונות מהיציע</span>
+            </div>
+
+            <div id="communityFeed">
+            <div class="post card" data-post-id="p2" data-topic="transfers" data-likes="212">
+              <div class="post-head">
+                <div class="avatar">דכ</div>
+                <div class="post-user"><div class="post-name-row"><span class="post-name">דניאל כהן</span><span class="badge">מאומת</span></div><div class="post-time">לפני 12 דק'</div></div>
+                <button class="icon-btn" style="width:30px;height:30px;" data-action="more" data-post="p2"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+              </div>
+              <div class="post-topic">#העברות</div>
+              <div class="post-text">שמועה חמה: הקבוצה בודקת חלוץ זר לקראת החלון הקרוב. מישהו שמע פרטים נוספים?</div>
+              <div class="post-actions">
+                <button data-action="like" data-post="p2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H4l1 10a2 2 0 002 2h10a2 2 0 002-2l1-10h-6z"/></svg><span data-like-count="p2">212</span></button>
+                <button data-action="comment" data-post="p2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-9 8.5A8.5 8.5 0 013 12a8.5 8.5 0 019-8.5 8.38 8.38 0 019 8z"/></svg>89</button>
+                <button data-action="share" data-post="p2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v7a4 4 0 004 4h12M4 4l4 4M4 4l4-4"/></svg>שתף</button>
+              </div>
+            </div>
+
+            <div class="post card" data-post-id="p3" data-topic="photos" data-likes="340">
+              <div class="post-head">
+                <div class="avatar">מל</div>
+                <div class="post-user"><div class="post-name-row"><span class="post-name">מאיה לוין</span></div><div class="post-time">לפני 40 דק'</div></div>
+                <button class="icon-btn" style="width:30px;height:30px;" data-action="more" data-post="p3"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+              </div>
+              <div class="post-topic">#תמונות_מהיציע</div>
+              <div class="post-text">האווירה מהיציע הדרומי במשחק האחרון 🔵⚪️ מי שהיה שם יודע</div>
+              <div class="post-media"></div>
+              <div class="post-actions">
+                <button data-action="like" data-post="p3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H4l1 10a2 2 0 002 2h10a2 2 0 002-2l1-10h-6z"/></svg><span data-like-count="p3">340</span></button>
+                <button data-action="comment" data-post="p3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-9 8.5A8.5 8.5 0 013 12a8.5 8.5 0 019-8.5 8.38 8.38 0 019 8z"/></svg>57</button>
+                <button data-action="share" data-post="p3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v7a4 4 0 004 4h12M4 4l4 4M4 4l4-4"/></svg>שתף</button>
+              </div>
+            </div>
+
+            <div class="post card" data-post-id="p4" data-topic="matches" data-likes="76">
+              <div class="post-head">
+                <div class="avatar">אמ</div>
+                <div class="post-user"><div class="post-name-row"><span class="post-name">אלון מזרחי</span><span class="badge">קבוצת נסיעות חוץ</span></div><div class="post-time">לפני שעה</div></div>
+                <button class="icon-btn" style="width:30px;height:30px;" data-action="more" data-post="p4"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+              </div>
+              <div class="post-topic">#קבוצות · נסיעות למשחקי חוץ</div>
+              <div class="post-text">מארגנים אוטובוס למשחק החוץ הבא. נרשמים בקבוצה — 41/50 מקומות נותרו.</div>
+              <div class="post-actions">
+                <button data-action="like" data-post="p4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H4l1 10a2 2 0 002 2h10a2 2 0 002-2l1-10h-6z"/></svg><span data-like-count="p4">76</span></button>
+                <button data-action="comment" data-post="p4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-9 8.5A8.5 8.5 0 013 12a8.5 8.5 0 019-8.5 8.38 8.38 0 019 8z"/></svg>19</button>
+                <button data-action="share" data-post="p4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v7a4 4 0 004 4h12M4 4l4 4M4 4l4-4"/></svg>שתף</button>
+              </div>
+            </div>
+            </div>
+
+            <button class="fab" data-action="create-post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>
+          </section>
+
+          <!-- ============ MATCH CENTER ============ -->
+          <section class="screen" data-screen="match">
+
+            <div data-phase-el="before">
+              <div class="topbar"><h2 style="font-size:16px; font-weight:800;">מרכז המשחק</h2><span class="pill">בעוד יומיים</span></div>
+              <div class="subtabs" id="matchSubtabs">
+                <span class="pill on" data-action="subtab" data-subtab="overview">סקירה</span><span class="pill" data-action="subtab" data-subtab="lineup">הרכבים</span><span class="pill" data-action="subtab" data-subtab="fans">אוהדים</span><span class="pill" data-action="subtab" data-subtab="info">מידע</span>
+              </div>
+              <div class="match-card" style="margin:0 18px 18px;">
+                <div class="teams-row">
+                  <div class="team-block"><div class="crest home lg js-home-crest">יר</div><div class="tname js-home-name">הפועל ירקון</div></div>
+                  <div class="vs-block"><div class="time">20:30</div><div class="date">חמישי, 23.7</div></div>
+                  <div class="team-block"><div class="crest away lg js-away-crest">מד</div><div class="tname js-away-name">מכבי דרום</div></div>
+                </div>
+              </div>
+
+              <div class="subpanel active" data-panel="overview">
+                <div class="section-head" style="margin-top:0;"><h2>חמשת המשחקים האחרונים</h2></div>
+                <div style="display:flex; justify-content:space-around; margin:0 18px 18px;">
+                  <div style="text-align:center;"><div class="tname js-home-short" style="margin-bottom:6px;">ירקון</div><div class="form-dots"><span class="fdot w">נ</span><span class="fdot w">נ</span><span class="fdot d">ת</span><span class="fdot w">נ</span><span class="fdot l">ה</span></div></div>
+                  <div style="text-align:center;"><div class="tname js-away-short" style="margin-bottom:6px;">דרום</div><div class="form-dots"><span class="fdot d">ת</span><span class="fdot l">ה</span><span class="fdot w">נ</span><span class="fdot w">נ</span><span class="fdot d">ת</span></div></div>
+                </div>
+                <div class="section-head"><h2>מיקום בטבלה</h2></div>
+                <div class="table-card card" style="margin-bottom:20px;">
+                  <div class="trow me"><span class="pos">3</span><span class="name js-home-short">הפועל ירקון</span><span class="pts">47</span></div>
+                  <div class="trow"><span class="pos">4</span><span class="name js-away-short">מכבי דרום</span><span class="pts">44</span></div>
+                </div>
+              </div>
+
+              <div class="subpanel" data-panel="lineup">
+                <div class="section-head" style="margin-top:0;"><h2>הרכב משוער</h2></div>
+                <div class="lineup-pitch">
+                  <div class="lrow"><div class="lplayer"><div class="ljersey">9</div><div class="ln">בן דוד</div></div></div>
+                  <div class="lrow"><div class="lplayer"><div class="ljersey">7</div><div class="ln">שרון</div></div><div class="lplayer"><div class="ljersey">10</div><div class="ln">גבאי</div></div><div class="lplayer"><div class="ljersey">11</div><div class="ln">אשכנזי</div></div></div>
+                  <div class="lrow"><div class="lplayer"><div class="ljersey">4</div><div class="ln">כהן</div></div><div class="lplayer"><div class="ljersey">6</div><div class="ln">פרץ</div></div><div class="lplayer"><div class="ljersey">8</div><div class="ln">מזרחי</div></div></div>
+                  <div class="lrow"><div class="lplayer"><div class="ljersey">2</div><div class="ln">אביטן</div></div><div class="lplayer"><div class="ljersey">5</div><div class="ln">אזולאי</div></div><div class="lplayer"><div class="ljersey">3</div><div class="ln">סבן</div></div></div>
+                  <div class="lrow"><div class="lplayer"><div class="ljersey">1</div><div class="ln">לוי</div></div></div>
+                </div>
+                <div style="height:20px;"></div>
+              </div>
+
+              <div class="subpanel" data-panel="fans">
+                <div class="section-head" style="margin-top:0;"><h2>תחזית הקהילה</h2></div>
+                <div class="poll-card card">
+                  <div class="poll-q">מה תהיה התוצאה הסופית?</div>
+                  <div class="poll-opt" data-action="vote-poll2" data-opt="a"><div class="poll-fill" style="width:48%"></div><div class="row"><span class="js-home-short">ניצחון לירקון</span><span>48%</span></div></div>
+                  <div class="poll-opt" data-action="vote-poll2" data-opt="b"><div class="poll-fill" style="width:20%"></div><div class="row"><span>תיקו</span><span>20%</span></div></div>
+                  <div class="poll-opt" data-action="vote-poll2" data-opt="c"><div class="poll-fill" style="width:32%"></div><div class="row"><span class="js-away-short">ניצחון לדרום</span><span>32%</span></div></div>
+                </div>
+                <div class="section-head"><h2>מפגשי אוהדים</h2></div>
+                <div class="card" style="margin:0 18px 20px; padding:14px;">
+                  <div style="font-size:12.5px; font-weight:700; margin-bottom:4px;">מפגש טרום-משחק בכיכר האצטדיון</div>
+                  <div style="font-size:11.5px; color:var(--text-2); margin-bottom:12px;">היום · 18:30 · מאושר על ידי מנהל הקהילה</div>
+                  <button class="btn ghost" data-action="join-meetup">הצטרפות למפגש</button>
+                </div>
+              </div>
+
+              <div class="subpanel" data-panel="info">
+                <div class="section-head" style="margin-top:0;"><h2>מידע למשחק</h2></div>
+                <div class="card" style="margin:0 18px 20px;">
+                  <div class="menu-row" data-action="info-row" data-info="שערים מומלצים: שער 4 ו-6 לאוהדי הבית"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>שערים מומלצים</div>
+                  <div class="menu-row" data-action="info-row" data-info="שערי האצטדיון נפתחים שעה וחצי לפני המשחק"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>שעות פתיחה</div>
+                  <div class="menu-row" data-action="info-row" data-info="קווים 5, 12 ו-48 עוצרים ליד האצטדיון בימי משחק"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16V6a2 2 0 012-2h12a2 2 0 012 2v10M4 16a2 2 0 002 2h12a2 2 0 002-2M4 16h16M8 21l1-3M16 21l-1-3"/></svg>תחבורה ציבורית</div>
+                  <div class="menu-row" data-action="info-row" data-info="אין להכניס חפצים חדים, זיקוקים או דגלים על מוט מעל 1 מטר"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>כללי כניסה</div>
+                  <div class="menu-row" data-action="tickets-link" style="border-bottom:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M3 12h18"/></svg>קישור רשמי לכרטיסים</div>
+                </div>
+              </div>
+            </div>
+
+            <div data-phase-el="live">
+              <div class="topbar"><div class="live-strip" style="margin:0;"><span class="pulse-dot"></span>חי · דקה 63</div><span class="pill">ליגת העל</span></div>
+              <div class="teams-row px" style="margin-bottom:10px;">
+                <div class="team-block"><div class="crest home js-home-crest">יר</div><div class="tname js-home-short">ירקון</div></div>
+                <div class="live-score"><span class="num">1</span><span class="sep">:</span><span class="num">0</span></div>
+                <div class="team-block"><div class="crest away js-away-crest">מד</div><div class="tname js-away-short">דרום</div></div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-cell"><div class="v">58%</div><div class="l">החזקה</div></div>
+                <div class="stat-cell"><div class="v">9</div><div class="l">בעיטות</div></div>
+                <div class="stat-cell"><div class="v">1</div><div class="l">כרטיסים</div></div>
+              </div>
+
+              <div class="section-head" style="margin-top:6px;"><h2>ציר זמן</h2></div>
+              <div class="timeline">
+                <div class="tl-item"><span class="tl-min">63'</span><div class="tl-icon sub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3L4 7l4 4M4 7h11a4 4 0 014 4v1M16 21l4-4-4-4M20 17H9a4 4 0 01-4-4v-1"/></svg></div><div><div class="tl-txt">חילוף: שרון יורד, בכר עולה</div></div></div>
+                <div class="tl-item"><span class="tl-min">58'</span><div class="tl-icon goal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div><div><div class="tl-txt">⚽ שער! אריאל בן דוד</div><div class="tl-sub">בישול: יובל שרון</div></div></div>
+                <div class="tl-item"><span class="tl-min">46'</span><div class="tl-icon half"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div><div><div class="tl-txt">תחילת המחצית השנייה</div></div></div>
+                <div class="tl-item"><span class="tl-min">41'</span><div class="tl-icon card"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="12" height="16" rx="2"/></svg></div><div><div class="tl-txt">כרטיס צהוב — עידו כהן</div></div></div>
+              </div>
+
+              <div class="section-head"><h2>חדר אוהדים חי</h2><a href="#" id="chatSortLink" data-action="chat-sort">מיין: חדש</a></div>
+              <div class="chat-pinned">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+                מצב איטי פעיל בחדר — הודעה אחת לכל 20 שניות
+              </div>
+              <div class="chat-list" id="chatList">
+                <div class="chat-msg"><div class="avatar">רס</div><div><div class="chat-name">רון סבג</div><div class="chat-txt">בן דוד תותח היום 🔥🔵</div><div class="chat-reacts"><span>⚽ 24</span><span>🔥 18</span></div></div></div>
+                <div class="chat-msg"><div class="avatar" style="background:var(--accent-dim); color:var(--accent);">מנ</div><div><div class="chat-name mod">מנהל הקהילה <span class="badge mod">מנהל</span></div><div class="chat-txt">אנא שמרו על שיח נעים, תודה לכולם 🙏</div></div></div>
+                <div class="chat-msg"><div class="avatar">גל</div><div><div class="chat-name">גל אביטל</div><div class="chat-txt">ההגנה סוגרת יפה במחצית השנייה</div><div class="chat-reacts"><span>👏 9</span></div></div></div>
+              </div>
+              <div class="quick-emoji">
+                <button data-action="chat-emoji" data-emoji="⚽">⚽</button><button data-action="chat-emoji" data-emoji="🔥">🔥</button><button data-action="chat-emoji" data-emoji="😱">😱</button><button data-action="chat-emoji" data-emoji="👏">👏</button><button data-action="chat-emoji" data-emoji="💙">💙</button>
+              </div>
+              <div class="chat-input-row"><input class="chat-input" id="chatInput" type="text" placeholder="הצטרפו לשיחה…"><button class="send-btn" data-action="chat-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button></div>
+              <div style="height:8px;"></div>
+            </div>
+
+            <div data-phase-el="after">
+              <div class="topbar"><h2 style="font-size:16px; font-weight:800;">דירוג שחקנים</h2></div>
+              <div class="final-score-card card">
+                <div class="comp">ליגת העל · מחזור 24 · הסתיים</div>
+                <div class="teams-row">
+                  <div class="team-block"><div class="crest home js-home-crest">יר</div><div class="tname js-home-short">ירקון</div></div>
+                  <div class="live-score"><span class="num">2</span><span class="sep">:</span><span class="num">1</span></div>
+                  <div class="team-block"><div class="crest away js-away-crest">מד</div><div class="tname js-away-short">דרום</div></div>
+                </div>
+              </div>
+              <div class="section-head"><h2>דרגו מ-1 עד 10</h2><span class="pill">גע כדי לשנות ציון</span></div>
+              <div class="rate-list" id="rateList">
+                <div class="rate-row card" data-player="1"><div class="avatar">אב</div><div class="rate-info"><div class="rate-name">אריאל בן דוד <span class="mvp-star" data-action="set-mvp" data-player="1">★</span></div><div class="rate-pos">חלוץ</div></div><div class="rate-score" data-action="rate-tap" data-player="1" data-score="9">9</div></div>
+                <div class="rate-row card" data-player="2"><div class="avatar">יש</div><div class="rate-info"><div class="rate-name">יובל שרון <span class="mvp-star" data-action="set-mvp" data-player="2">★</span></div><div class="rate-pos">קשר</div></div><div class="rate-score" data-action="rate-tap" data-player="2" data-score="8">8</div></div>
+                <div class="rate-row card" data-player="3"><div class="avatar">עכ</div><div class="rate-info"><div class="rate-name">עידו כהן <span class="mvp-star" data-action="set-mvp" data-player="3">★</span></div><div class="rate-pos">מגן</div></div><div class="rate-score" data-action="rate-tap" data-player="3" data-score="6">6</div></div>
+                <div class="rate-row card" data-player="4"><div class="avatar">תל</div><div class="rate-info"><div class="rate-name">תומר לוי <span class="mvp-star" data-action="set-mvp" data-player="4">★</span></div><div class="rate-pos">שוער</div></div><div class="rate-score" data-action="rate-tap" data-player="4" data-score="7">7</div></div>
+              </div>
+              <div class="px" style="margin-top:18px;"><button class="btn primary" data-action="submit-ratings" id="submitRatingsBtn">שליחת הדירוגים</button></div>
+              <div style="height:20px;"></div>
+            </div>
+          </section>
+
+          <!-- ============ FAN POINTS ============ -->
+          <section class="screen" data-screen="points">
+            <div class="topbar"><h2 style="font-size:18px; font-weight:800;">Fan Points</h2></div>
+            <div class="fp-hero card">
+              <div class="fp-level">דרגה נוכחית: <b>קפטן יציע</b></div>
+              <div class="fp-points js-points-total">2,840</div>
+              <div class="fp-next" id="fpNext">עוד 660 נקודות לדרגת "אגדה"</div>
+              <div class="fp-progress"><div class="progress-track"><div class="progress-fill" id="fpProgressFill" style="width:81%"></div></div></div>
+            </div>
+
+            <div class="section-head"><h2>רצף שבועי — 6 שבועות</h2></div>
+            <div class="streak-row">
+              <div class="streak-day"><div class="d on">✓</div><div class="lbl">א</div></div>
+              <div class="streak-day"><div class="d on">✓</div><div class="lbl">ב</div></div>
+              <div class="streak-day"><div class="d on">✓</div><div class="lbl">ג</div></div>
+              <div class="streak-day"><div class="d on">✓</div><div class="lbl">ד</div></div>
+              <div class="streak-day"><div class="d">·</div><div class="lbl">ה</div></div>
+              <div class="streak-day"><div class="d">·</div><div class="lbl">ו</div></div>
+              <div class="streak-day"><div class="d">·</div><div class="lbl">ש</div></div>
+            </div>
+
+            <div class="section-head"><h2>אתגרים פעילים</h2></div>
+            <div class="chal-card card" style="margin-bottom:10px;" data-action="challenge" data-challenge="c1" data-points="50" id="chalCard1">
+              <div class="task-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+              <div class="chal-body"><div class="chal-title">דרגו את כל השחקנים במשחק הבא</div><div class="chal-reward">+50 נקודות</div></div>
+            </div>
+            <div class="chal-card card" style="margin-bottom:20px;" data-action="challenge" data-challenge="c2" data-points="20" id="chalCard2">
+              <div class="task-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+              <div class="chal-body"><div class="chal-title">הגיבו לשלושה פוסטים השבוע</div><div class="chal-reward">+20 נקודות</div></div>
+            </div>
+
+            <div class="section-head"><h2>תגים שהשגתם</h2></div>
+            <div class="badge-grid">
+              <div class="badge-item"><div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg></div><div class="n">עשרה משחקים</div></div>
+              <div class="badge-item"><div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z"/></svg></div><div class="n">מלך הסקרים</div></div>
+              <div class="badge-item"><div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M12 2c2.5 2.5 4 6 4 10s-1.5 7.5-4 10c-2.5-2.5-4-6-4-10s1.5-7.5 4-10z"/></svg></div><div class="n">אוהד חוץ</div></div>
+              <div class="badge-item" data-action="badge-locked" id="lockedBadge"><div class="badge-icon" style="opacity:.35;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 118 0v3"/></svg></div><div class="n" style="opacity:.5;">מומחה הרכבים</div></div>
+            </div>
+
+            <div class="section-head"><h2>היסטוריית נקודות</h2></div>
+            <div style="margin-bottom:10px;">
+              <div class="txn-row"><div class="txn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg></div><div><div class="txn-t">דירוג שחקנים · <span class="js-home-short">ירקון</span> נגד <span class="js-away-short">הגליל</span></div><div class="txn-time">אתמול</div></div><div class="txn-pts" style="margin-inline-start:auto;">+30</div></div>
+              <div class="txn-row"><div class="txn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6z"/></svg></div><div><div class="txn-t">השתתפות בסקר היום</div><div class="txn-time">לפני יומיים</div></div><div class="txn-pts" style="margin-inline-start:auto;">+5</div></div>
+              <div class="txn-row"><div class="txn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg></div><div><div class="txn-t">רצף כניסה שבועי</div><div class="txn-time">לפני 3 ימים</div></div><div class="txn-pts" style="margin-inline-start:auto;">+15</div></div>
+            </div>
+          </section>
+
+          <!-- ============ PROFILE ============ -->
+          <section class="screen" data-screen="profile">
+            <div class="topbar"><h2 style="font-size:18px; font-weight:800;">פרופיל</h2>
+              <div class="icon-btn" data-action="scroll-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34H9a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87V9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg></div>
+            </div>
+            <div class="profile-head">
+              <div class="profile-avatar">ע</div>
+              <div class="profile-name">עידן_45</div>
+              <div class="profile-sub">
+                <span class="verified"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.5 1 3 2.9 1.4-.5 3.1L23 14l-2.1 2.4.5 3.1-3 1-1.4 2.9-3.1-.5L12 25l-2.4-2.1-3.1.5-1-3-2.9-1.4.5-3.1L1 14l2.1-2.4-.5-3.1 3-1 1.4-2.9 3.1.5z" transform="translate(0 -3)"/></svg></span>
+                אוהד מאומת · <span class="js-home-name">הפועל ירקון</span>
+              </div>
+            </div>
+            <div class="stat-strip">
+              <div class="cell" data-action="goto-points" style="cursor:pointer;"><div class="v js-points-total">2,840</div><div class="l">נקודות</div></div>
+              <div class="cell"><div class="v">58</div><div class="l">משחקים</div></div>
+              <div class="cell"><div class="v">312</div><div class="l">עוקבים</div></div>
+              <div class="cell"><div class="v">190</div><div class="l">עוקב</div></div>
+            </div>
+            <div class="prof-tabs" id="profTabs">
+              <div class="prof-tab on" data-action="prof-tab" data-tab="posts">פוסטים</div>
+              <div class="prof-tab" data-action="prof-tab" data-tab="comments">תגובות</div>
+              <div class="prof-tab" data-action="prof-tab" data-tab="achievements">הישגים</div>
+            </div>
+
+            <div class="prof-panel active" data-prof-panel="posts">
+              <div class="post card" style="margin-bottom:20px;" data-post-id="p5">
+                <div class="post-text">חברים בהצטרפות ל-FanZone מאז אוגוסט 2024. ראיתי 58 משחקים, דירגתי כמעט את כולם 💙</div>
+                <div class="post-actions"><button data-action="like" data-post="p5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H4l1 10a2 2 0 002 2h10a2 2 0 002-2l1-10h-6z"/></svg><span data-like-count="p5">64</span></button></div>
+              </div>
+            </div>
+            <div class="prof-panel" data-prof-panel="comments" style="display:none;">
+              <div class="card" style="margin:0 18px 20px; padding:4px 14px;">
+                <div class="comment-item"><div class="avatar" style="width:28px;height:28px;">ע</div><div><div class="comment-name">אתה, על "רשמי: שני שחקנים חדשים..."</div><div class="comment-txt">סוף סוף! חסר לנו עומק בהרכב.</div></div></div>
+                <div class="comment-item"><div class="avatar" style="width:28px;height:28px;">ע</div><div><div class="comment-name">אתה, על מפגש האוהדים</div><div class="comment-txt">אני ומשפחה מגיעים, מחכים לזה כל השבוע!</div></div></div>
+              </div>
+            </div>
+            <div class="prof-panel" data-prof-panel="achievements" style="display:none;">
+              <div class="badge-grid" style="padding-bottom:20px;">
+                <div class="badge-item"><div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg></div><div class="n">עשרה משחקים</div></div>
+                <div class="badge-item"><div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 100-6 3 3 0 000 6zM18 19a3 3 0 100-6 3 3 0 000 6z"/></svg></div><div class="n">מלך הסקרים</div></div>
+                <div class="badge-item"><div class="badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M12 2c2.5 2.5 4 6 4 10s-1.5 7.5-4 10c-2.5-2.5-4-6-4-10s1.5-7.5 4-10z"/></svg></div><div class="n">אוהד חוץ</div></div>
+              </div>
+            </div>
+
+            <div class="section-head" style="margin-top:0;" id="settingsHead"><h2>הגדרות</h2></div>
+            <div class="menu-row" id="changeClubBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l-3 3-3-3M4 8l4-3 4 3 4-3 4 3-1.5 3.5V20a1 1 0 01-1 1H6.5a1 1 0 01-1-1v-8.5z"/></svg>שינוי קבוצה נבחרת</div>
+            <div class="menu-row" data-action="menu-notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>ניהול התראות</div>
+            <div class="menu-row" data-action="menu-privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>הגדרות פרטיות</div>
+            <div class="menu-row" data-action="menu-support"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5M12 17h.01"/></svg>צור קשר עם התמיכה</div>
+            <div class="menu-row danger" data-action="menu-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>מחיקת חשבון</div>
+            <div style="height:16px;"></div>
+          </section>
+
+        </div>
+
+        <div class="toast" id="toast"></div>
+        <div class="sheet-backdrop" id="sheetBackdrop"></div>
+        <div class="sheet" id="sheet">
+          <div class="sheet-grip"></div>
+          <div class="sheet-head"><h3 id="sheetTitle"></h3><button class="sheet-close" id="sheetClose">✕</button></div>
+          <div class="sheet-body" id="sheetBody"></div>
+        </div>
+        <div class="sheet-backdrop" id="confirmBackdrop"></div>
+        <div class="confirm-box" id="confirmBox">
+          <h3 id="confirmTitle"></h3>
+          <p id="confirmText"></p>
+          <div class="row">
+            <button class="btn ghost" id="confirmCancel">ביטול</button>
+            <button class="btn primary" id="confirmOk" style="background:var(--err); color:#fff;">אישור</button>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <button class="tab-btn active" data-tab="home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+            בית
+          </button>
+          <button class="tab-btn" data-tab="community">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            קהילה
+          </button>
+          <button class="tab-btn match active" data-tab="match">
+            <div class="match-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.5 6.5l2 2M15.5 15.5l2 2M17.5 6.5l-2 2M8.5 15.5l-2 2"/></svg></div>
+            משחק
+          </button>
+          <button class="tab-btn" data-tab="points">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg>
+            נקודות
+          </button>
+          <button class="tab-btn" data-tab="profile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+            פרופיל
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note">
+    פרוטוטייפ מקומי · 14 קבוצות ליגת העל האמיתיות, כל אחת עם צבעי המועדון שלה · בחירת קבוצה בפתיחה צובעת את כל האפליקציה מחדש · ניתן להחליף קבוצה מהפרופיל
+  </footer>
+
+<script>
+  // ---------- real Ligat Ha'al clubs (2025/26 top flight) ----------
+  // Accent hex values are best-effort renderings of each club's known kit
+  // colors (official brand hex isn't publicly documented) — sourced via web
+  // search of each club's Hebrew Wikipedia / press coverage of their colors.
+  const CLUBS = [
+    {id:'maccabi_tel_aviv',    name:'מכבי תל אביב',       short:'מכבי ת"א',     mono:'מת', city:'תל אביב',        stadium:'אצטדיון בלומפילד, תל אביב',   accent:'#FFC72C'},
+    {id:'hapoel_tel_aviv',     name:'הפועל תל אביב',      short:'הפועל ת"א',    mono:'הת', city:'תל אביב',        stadium:'אצטדיון בלומפילד, תל אביב',   accent:'#E1261C'},
+    {id:'maccabi_haifa',       name:'מכבי חיפה',          short:'מכבי חיפה',    mono:'מח', city:'חיפה',           stadium:'אצטדיון סמי עופר, חיפה',      accent:'#17A54D'},
+    {id:'hapoel_haifa',        name:'הפועל חיפה',         short:'הפועל חיפה',   mono:'הח', city:'חיפה',           stadium:'אצטדיון סמי עופר, חיפה',      accent:'#C62828'},
+    {id:'beitar',              name:'בית"ר ירושלים',      short:'בית"ר',        mono:'בי', city:'ירושלים',        stadium:'אצטדיון טדי, ירושלים',        accent:'#D4A017'},
+    {id:'hapoel_jerusalem',    name:'הפועל ירושלים',      short:'הפועל י-ם',    mono:'הי', city:'ירושלים',        stadium:'אצטדיון טדי, ירושלים',        accent:'#B7302A'},
+    {id:'hapoel_beer_sheva',   name:'הפועל באר שבע',      short:'הפועל ב"ש',    mono:'הב', city:'באר שבע',        stadium:'אצטדיון טרנר, באר שבע',       accent:'#DC2E22'},
+    {id:'bnei_sakhnin',        name:'בני סכנין',          short:'סכנין',        mono:'בס', city:'סכנין',          stadium:'אצטדיון דוחא, סכנין',         accent:'#D6291E'},
+    {id:'maccabi_netanya',     name:'מכבי נתניה',         short:'מכבי נתניה',   mono:'מנ', city:'נתניה',          stadium:'האצטדיון העירוני, נתניה',     accent:'#2F6FE4'},
+    {id:'hapoel_petah_tikva',  name:'הפועל פתח תקווה',    short:'הפועל פ"ת',    mono:'הפ', city:'פתח תקווה',      stadium:'אצטדיון המושבה, פתח תקווה',   accent:'#CB3A2E'},
+    {id:'ms_ashdod',           name:'מ.ס אשדוד',          short:'מ.ס אשדוד',    mono:'אש', city:'אשדוד',          stadium:'אצטדיון י"א, אשדוד',          accent:'#E2A63B'},
+    {id:'maccabi_bnei_reina',  name:'מכבי בני ריינה',     short:'בני ריינה',    mono:'בר', city:'ריינה',          stadium:'האצטדיון העירוני, ריינה',     accent:'#2E9E52'},
+    {id:'ironi_tiberias',      name:'עירוני טבריה',       short:'עירוני טבריה', mono:'עט', city:'טבריה',          stadium:'האצטדיון העירוני, טבריה',     accent:'#7A2048'},
+    {id:'ironi_kiryat_shmona', name:'עירוני קריית שמונה', short:'קריית שמונה',  mono:'קש', city:'קריית שמונה',    stadium:'האצטדיון העירוני, קריית שמונה', accent:'#E8641E'},
+  ];
+
+  // representative rival per club (real geographic/historic derbies) — used
+  // to populate the "opponent" side of the match card once a club is chosen
+  const RIVALS = {
+    maccabi_tel_aviv:'hapoel_tel_aviv',
+    hapoel_tel_aviv:'maccabi_tel_aviv',
+    maccabi_haifa:'hapoel_haifa',
+    hapoel_haifa:'maccabi_haifa',
+    beitar:'hapoel_jerusalem',
+    hapoel_jerusalem:'beitar',
+    hapoel_beer_sheva:'maccabi_haifa',
+    bnei_sakhnin:'hapoel_haifa',
+    maccabi_netanya:'hapoel_petah_tikva',
+    hapoel_petah_tikva:'maccabi_netanya',
+    ms_ashdod:'hapoel_beer_sheva',
+    maccabi_bnei_reina:'bnei_sakhnin',
+    ironi_tiberias:'ironi_kiryat_shmona',
+    ironi_kiryat_shmona:'ironi_tiberias',
+  };
+
+  const STORAGE_KEY = 'fanzone_club_id';
+
+  // ---------- color helpers ----------
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    const n = parseInt(h,16);
+    return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
+  }
+  function rgba(hex, a){
+    const {r,g,b} = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+  function shade(hex, percent){
+    const {r,g,b} = hexToRgb(hex);
+    const t = percent < 0 ? 0 : 255;
+    const p = Math.abs(percent) / 100;
+    const mix = v => Math.round((t - v) * p + v).toString(16).padStart(2,'0');
+    return '#' + mix(r) + mix(g) + mix(b);
+  }
+  function luminance(hex){
+    const {r,g,b} = hexToRgb(hex);
+    const a = [r,g,b].map(v=>{
+      v /= 255;
+      return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+    });
+    return 0.2126*a[0] + 0.7152*a[1] + 0.0722*a[2];
+  }
+  function contrast(l1, l2){
+    const lighter = Math.max(l1,l2), darker = Math.min(l1,l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+  function inkFor(hex){
+    const l = luminance(hex);
+    return contrast(l,1) >= contrast(l,0) ? '#FFFFFF' : '#14151A';
+  }
+
+  // ---------- theming ----------
+  let currentClub = null;
+
+  function applyClub(club){
+    const rival = CLUBS.find(c => c.id === (RIVALS[club.id] || '')) || CLUBS.find(c => c.id !== club.id);
+    const neutral = CLUBS.find(c => c.id !== club.id && c.id !== rival.id);
+    const root = document.documentElement.style;
+
+    root.setProperty('--accent', club.accent);
+    root.setProperty('--accent-dim', rgba(club.accent, 0.18));
+    root.setProperty('--accent-glow', rgba(club.accent, 0.4));
+    root.setProperty('--accent-shade', shade(club.accent, -32));
+    root.setProperty('--accent-ink', inkFor(club.accent));
+    root.setProperty('--rival', rival.accent);
+    root.setProperty('--rival-shade', shade(rival.accent, -32));
+    root.setProperty('--rival-ink', inkFor(rival.accent));
+
+    document.querySelectorAll('.js-home-crest').forEach(el => el.textContent = club.mono);
+    document.querySelectorAll('.js-home-name').forEach(el => el.textContent = club.name);
+    document.querySelectorAll('.js-home-short').forEach(el => el.textContent = club.short);
+    document.querySelectorAll('.js-away-crest').forEach(el => el.textContent = rival.mono);
+    document.querySelectorAll('.js-away-name').forEach(el => el.textContent = rival.name);
+    document.querySelectorAll('.js-away-short').forEach(el => el.textContent = rival.short);
+    document.querySelectorAll('.js-neutral-short').forEach(el => el.textContent = neutral.short);
+    document.querySelectorAll('.js-venue').forEach(el => el.textContent = club.stadium);
+    document.querySelectorAll('.js-profile-club').forEach(el => el.textContent = club.name);
+
+    document.title = 'FanZone · ' + club.name;
+    currentClub = club;
+  }
+
+  // ---------- onboarding ----------
+  let selectedClubId = null;
+
+  function renderClubList(filter, preselectId){
+    if (preselectId !== undefined) selectedClubId = preselectId;
+    const q = (filter || '').trim();
+    const items = CLUBS.filter(c => !q || c.name.includes(q) || c.city.includes(q) || c.short.includes(q));
+    const list = document.getElementById('obList');
+
+    if (items.length === 0){
+      list.innerHTML = '<div class="ob-empty">לא נמצאה קבוצה מתאימה</div>';
+    } else {
+      list.innerHTML = items.map(c => {
+        const ink = inkFor(c.accent);
+        const sel = c.id === selectedClubId ? ' sel' : '';
+        return `<button type="button" class="ob-row${sel}" data-id="${c.id}">
+          <span class="ob-crest" style="background:linear-gradient(155deg, ${c.accent}, ${shade(c.accent,-30)}); color:${ink}">${c.mono}</span>
+          <span class="ob-row-text"><span class="ob-name">${c.name}</span><span class="ob-city">${c.city}</span></span>
+          <span class="ob-check">✓</span>
+        </button>`;
+      }).join('');
+      list.querySelectorAll('.ob-row').forEach(row=>{
+        row.addEventListener('click', ()=>{
+          selectedClubId = row.dataset.id;
+          list.querySelectorAll('.ob-row').forEach(r=>r.classList.remove('sel'));
+          row.classList.add('sel');
+          document.getElementById('obConfirm').disabled = false;
+        });
+      });
+    }
+    document.getElementById('obConfirm').disabled = !selectedClubId;
+  }
+
+  function showScreen(name){
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
+  }
+
+  function enterApp(club){
+    applyClub(club);
+    document.getElementById('shell').classList.remove('pre-onboard');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'home'));
+    showScreen('home');
+    document.getElementById('content').scrollTop = 0;
+  }
+
+  document.getElementById('obSearch').addEventListener('input', e => renderClubList(e.target.value));
+  document.getElementById('obConfirm').addEventListener('click', ()=>{
+    if (!selectedClubId) return;
+    const club = CLUBS.find(c => c.id === selectedClubId);
+    localStorage.setItem(STORAGE_KEY, club.id);
+    enterApp(club);
+  });
+  document.getElementById('changeClubBtn').addEventListener('click', ()=>{
+    document.getElementById('shell').classList.add('pre-onboard');
+    renderClubList('', currentClub ? currentClub.id : null);
+    showScreen('onboarding');
+    document.getElementById('content').scrollTop = 0;
+  });
+
+  // ---------- app state (likes, points, ratings, posts...) ----------
+  const APP_STATE_KEY = 'fanzone_app_state';
+  const LEGEND_THRESHOLD = 3500;
+  function defaultAppState(){
+    return {
+      points: 2840,
+      likes: { p1:{count:128,liked:false}, p2:{count:212,liked:false}, p3:{count:340,liked:false}, p4:{count:76,liked:false}, p5:{count:64,liked:false} },
+      comments: {},
+      hiddenPosts: [],
+      createdPosts: [],
+      pollVote: null,
+      pollVote2: null,
+      weeklyTask: { progress:3, target:5, done:false },
+      challenges: { c1:false, c2:false },
+      ratings: { 1:9, 2:8, 3:6, 4:7 },
+      mvp: '1',
+      ratingsSubmitted: false,
+      badgeUnlocked: false,
+      notifications: [
+        {icon:'🔔', text:'חדר המשחק נפתח — הצטרפו עכשיו', time:'לפני 5 דק׳', read:false},
+        {icon:'📋', text:'ההרכב הרשמי פורסם', time:'לפני שעה', read:false},
+        {icon:'💬', text:'דניאל כהן הגיב לפוסט שלך', time:'אתמול', read:true},
+        {icon:'🏅', text:'עלית לדרגת "קפטן יציע"', time:'לפני 3 ימים', read:true},
+      ],
+      settings: { notifRoom:true, notifLineup:true, notifGoals:true, notifNews:true, notifComments:true, notifRewards:true, privateProfile:false, hideCity:true, hideActivity:false },
+    };
+  }
+  function loadAppState(){
+    try{
+      const raw = localStorage.getItem(APP_STATE_KEY);
+      if(raw) return Object.assign(defaultAppState(), JSON.parse(raw));
+    }catch(e){}
+    return defaultAppState();
+  }
+  function saveAppState(){ localStorage.setItem(APP_STATE_KEY, JSON.stringify(APP)); }
+  let APP = loadAppState();
+
+  const POSTS_META = {
+    p1:{name:'רועי אביב'}, p2:{name:'דניאל כהן'}, p3:{name:'מאיה לוין'}, p4:{name:'אלון מזרחי'}, p5:{name:'אתה'},
+  };
+
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- toast ----------
+  let toastTimer = null;
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> el.classList.remove('show'), 2200);
+  }
+
+  // ---------- bottom sheet ----------
+  function openSheet(title, bodyHTML){
+    document.getElementById('sheetTitle').textContent = title;
+    document.getElementById('sheetBody').innerHTML = bodyHTML;
+    document.getElementById('sheetBackdrop').classList.add('show');
+    document.getElementById('sheet').classList.add('show');
+  }
+  function closeSheet(){
+    document.getElementById('sheetBackdrop').classList.remove('show');
+    document.getElementById('sheet').classList.remove('show');
+  }
+  document.getElementById('sheetBackdrop').addEventListener('click', closeSheet);
+  document.getElementById('sheetClose').addEventListener('click', closeSheet);
+
+  // ---------- confirm dialog ----------
+  function openConfirm(title, text, onOk){
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    document.getElementById('confirmBackdrop').classList.add('show');
+    document.getElementById('confirmBox').classList.add('show');
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    function close(){
+      document.getElementById('confirmBackdrop').classList.remove('show');
+      document.getElementById('confirmBox').classList.remove('show');
+      okBtn.removeEventListener('click', onOkWrap);
+      cancelBtn.removeEventListener('click', close);
+    }
+    function onOkWrap(){ close(); onOk(); }
+    okBtn.addEventListener('click', onOkWrap);
+    cancelBtn.addEventListener('click', close);
+  }
+  document.getElementById('confirmBackdrop').addEventListener('click', ()=>{
+    document.getElementById('confirmBackdrop').classList.remove('show');
+    document.getElementById('confirmBox').classList.remove('show');
+  });
+
+  // ---------- points ----------
+  function addPoints(n, reason){
+    APP.points += n;
+    saveAppState();
+    syncPointsUI();
+    toast(`+${n} נקודות · ${reason}`);
+  }
+  function syncPointsUI(){
+    document.querySelectorAll('.js-points-total').forEach(el => el.textContent = APP.points.toLocaleString('he-IL'));
+    const next = Math.max(0, LEGEND_THRESHOLD - APP.points);
+    const fpNext = document.getElementById('fpNext');
+    if (fpNext) fpNext.textContent = next > 0 ? `עוד ${next.toLocaleString('he-IL')} נקודות לדרגת "אגדה"` : 'הגעתם לדרגת "אגדה"! 🏆';
+    const fill = document.getElementById('fpProgressFill');
+    if (fill) fill.style.width = Math.min(100, Math.round((APP.points / LEGEND_THRESHOLD) * 100)) + '%';
+  }
+
+  // ---------- likes / comments / share / report ----------
+  function toggleLike(postId){
+    const l = APP.likes[postId];
+    if(!l) return;
+    l.liked = !l.liked;
+    l.count += l.liked ? 1 : -1;
+    saveAppState();
+    document.querySelectorAll(`[data-like-count="${postId}"]`).forEach(el => el.textContent = l.count);
+    document.querySelectorAll(`[data-action="like"][data-post="${postId}"]`).forEach(el => el.classList.toggle('active', l.liked));
+  }
+  function syncAllLikeUI(){
+    Object.keys(APP.likes).forEach(id=>{
+      const l = APP.likes[id];
+      document.querySelectorAll(`[data-like-count="${id}"]`).forEach(el => el.textContent = l.count);
+      document.querySelectorAll(`[data-action="like"][data-post="${id}"]`).forEach(el => el.classList.toggle('active', l.liked));
+    });
+  }
+  function openComments(postId){
+    const list = APP.comments[postId] || [];
+    const itemsHTML = list.length
+      ? list.map(c => `<div class="comment-item"><div class="avatar" style="width:28px;height:28px;">${c.initials}</div><div><div class="comment-name">${escapeHTML(c.name)}</div><div class="comment-txt">${escapeHTML(c.text)}</div></div></div>`).join('')
+      : `<div style="text-align:center; color:var(--text-2); font-size:12.5px; padding:20px 0;">אין עדיין תגובות. תהיו הראשונים.</div>`;
+    openSheet('תגובות', `
+      <div id="commentsItems">${itemsHTML}</div>
+      <div class="comment-input-row">
+        <input type="text" id="newCommentInput" placeholder="כתבו תגובה…">
+        <button class="send-btn" id="newCommentSend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+      </div>
+    `);
+    const send = ()=>{
+      const input = document.getElementById('newCommentInput');
+      const text = input.value.trim();
+      if(!text) return;
+      if(!APP.comments[postId]) APP.comments[postId] = [];
+      APP.comments[postId].push({name:'אתה', initials:'ע', text});
+      saveAppState();
+      openComments(postId);
+      toast('התגובה פורסמה');
+      if(!APP.challenges.c2){
+        APP._c2progress = (APP._c2progress||0) + 1;
+        if(APP._c2progress >= 3){
+          APP.challenges.c2 = true;
+          saveAppState();
+          renderChallenges();
+          addPoints(20, 'השלמת אתגר: הגבתם ל-3 פוסטים');
+        }
+      }
+    };
+    document.getElementById('newCommentSend').addEventListener('click', send);
+    document.getElementById('newCommentInput').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
+  }
+  function sharePost(){ toast('הקישור הועתק ללוח'); }
+  function hidePost(postId){
+    document.querySelectorAll(`.post[data-post-id="${postId}"]`).forEach(el=>{
+      el.classList.add('hiding');
+      setTimeout(()=> el.remove(), 260);
+    });
+    if(!APP.hiddenPosts.includes(postId)){ APP.hiddenPosts.push(postId); saveAppState(); }
+  }
+  function openMoreMenu(postId){
+    openSheet('אפשרויות פוסט', `
+      <div class="sheet-row" data-more-action="report">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+        דיווח על הפוסט
+      </div>
+      <div class="sheet-row" data-more-action="mute">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M23 9l-6 6M17 9l6 6"/></svg>
+        השתקת המשתמש
+      </div>
+      <div class="sheet-row danger" data-more-action="block">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/></svg>
+        חסימת המשתמש
+      </div>
+    `);
+    document.getElementById('sheetBody').querySelectorAll('[data-more-action]').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const act = row.dataset.moreAction;
+        closeSheet();
+        if(act === 'report'){ hidePost(postId); toast('הפוסט דווח והוסתר. תודה שעזרתם לשמור על הקהילה'); }
+        else if(act === 'mute'){ hidePost(postId); toast('המשתמש הושתק — לא תראו יותר תוכן ממנו'); }
+        else if(act === 'block'){ hidePost(postId); toast('המשתמש נחסם'); }
+      });
+    });
+  }
+
+  // ---------- create post ----------
+  function postHTML(p){
+    return `
+    <div class="post card" data-post-id="${p.id}" data-topic="${p.topic}" data-created="1">
+      <div class="post-head">
+        <div class="avatar" style="background:var(--accent-dim); color:var(--accent);">ע</div>
+        <div class="post-user"><div class="post-name-row"><span class="post-name">אתה</span></div><div class="post-time">${p.time}</div></div>
+        <button class="icon-btn" style="width:30px;height:30px;" data-action="more" data-post="${p.id}"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+      </div>
+      <div class="post-text" style="margin-top:10px;">${escapeHTML(p.text)}</div>
+      <div class="post-actions">
+        <button data-action="like" data-post="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-6 0v4H4l1 10a2 2 0 002 2h10a2 2 0 002-2l1-10h-6z"/></svg><span data-like-count="${p.id}">0</span></button>
+        <button data-action="comment" data-post="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-9 8.5A8.5 8.5 0 013 12a8.5 8.5 0 019-8.5 8.38 8.38 0 019 8z"/></svg>0</button>
+        <button data-action="share" data-post="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v7a4 4 0 004 4h12M4 4l4 4M4 4l4-4"/></svg>שתף</button>
+      </div>
+    </div>`;
+  }
+  function renderCreatedPosts(){
+    const feed = document.getElementById('communityFeed');
+    if(!feed) return;
+    feed.querySelectorAll('.post[data-created="1"]').forEach(el => el.remove());
+    APP.createdPosts.slice().reverse().forEach(p => feed.insertAdjacentHTML('afterbegin', postHTML(p)));
+    syncAllLikeUI();
+    applyFilter(currentFilter);
+  }
+  function openCreatePost(){
+    openSheet('פוסט חדש', `
+      <textarea id="newPostText" placeholder="מה קורה? שתפו את הקהילה..."></textarea>
+      <div class="chip-row" id="topicChips">
+        <span class="chip sel" data-topic="all">כללי</span>
+        <span class="chip" data-topic="matches">משחקים</span>
+        <span class="chip" data-topic="transfers">העברות</span>
+        <span class="chip" data-topic="photos">תמונות מהיציע</span>
+      </div>
+      <button class="btn primary" id="publishPostBtn" style="margin-top:16px;">פרסום</button>
+    `);
+    let selectedTopic = 'all';
+    document.querySelectorAll('#topicChips .chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        document.querySelectorAll('#topicChips .chip').forEach(c => c.classList.remove('sel'));
+        chip.classList.add('sel');
+        selectedTopic = chip.dataset.topic;
+      });
+    });
+    document.getElementById('publishPostBtn').addEventListener('click', ()=>{
+      const text = document.getElementById('newPostText').value.trim();
+      if(!text){ toast('כתבו משהו לפני הפרסום'); return; }
+      const id = 'u' + Date.now();
+      APP.createdPosts.push({id, text, topic:selectedTopic, time:'עכשיו'});
+      APP.likes[id] = {count:0, liked:false};
+      saveAppState();
+      renderCreatedPosts();
+      closeSheet();
+      addPoints(10, 'פרסום פוסט חדש');
+    });
+  }
+
+  // ---------- community filters / search ----------
+  let currentFilter = 'all';
+  function applyFilter(filter){
+    currentFilter = filter;
+    document.querySelectorAll('#communityFilters .pill').forEach(p => p.classList.toggle('on', p.dataset.filter === filter));
+    document.querySelectorAll('#communityFeed .post').forEach(post=>{
+      if(APP.hiddenPosts.includes(post.dataset.postId)){ post.style.display = 'none'; return; }
+      const topic = post.dataset.topic || 'all';
+      let show = filter === 'all' || filter === 'new' || filter === topic;
+      if(filter === 'popular'){
+        const likeEl = post.querySelector('[data-like-count]');
+        show = likeEl ? (parseInt(likeEl.textContent, 10) || 0) >= 100 : false;
+      }
+      post.style.display = show ? '' : 'none';
+    });
+  }
+  function toggleSearch(){
+    const wrap = document.getElementById('communitySearchWrap');
+    const show = wrap.style.display === 'none';
+    wrap.style.display = show ? '' : 'none';
+    if(show){ document.getElementById('communitySearch').focus(); }
+    else { document.getElementById('communitySearch').value = ''; applyFilter(currentFilter); }
+  }
+  document.getElementById('communitySearch').addEventListener('input', e=>{
+    const q = e.target.value.trim();
+    document.querySelectorAll('#communityFeed .post').forEach(post=>{
+      if(APP.hiddenPosts.includes(post.dataset.postId)){ post.style.display = 'none'; return; }
+      const text = post.querySelector('.post-text')?.textContent || '';
+      const name = post.querySelector('.post-name')?.textContent || '';
+      post.style.display = (!q || text.includes(q) || name.includes(q)) ? '' : 'none';
+    });
+  });
+
+  // ---------- polls ----------
+  const POLL_BASE = { 1:{a:610,b:240,c:150}, 2:{a:480,b:200,c:320} };
+  function votePoll(pollNum, opt){
+    const key = pollNum === 1 ? 'pollVote' : 'pollVote2';
+    if(APP[key]){ toast('כבר הצבעתם בסקר הזה'); return; }
+    APP[key] = opt;
+    saveAppState();
+    renderPoll(pollNum);
+    addPoints(5, 'הצבעה בסקר');
+  }
+  function renderPoll(pollNum){
+    const base = Object.assign({}, POLL_BASE[pollNum]);
+    const key = pollNum === 1 ? 'pollVote' : 'pollVote2';
+    const voted = APP[key];
+    if(voted) base[voted] += 1;
+    const total = base.a + base.b + base.c;
+    const selector = pollNum === 1 ? '[data-action="vote-poll"]' : '[data-action="vote-poll2"]';
+    document.querySelectorAll(selector).forEach(opt=>{
+      const o = opt.dataset.opt;
+      const pct = Math.round((base[o] / total) * 100);
+      opt.querySelector('.poll-fill').style.width = pct + '%';
+      opt.querySelector('.row span:last-child').textContent = pct + '%';
+      opt.classList.toggle('voted', voted === o);
+      opt.classList.toggle('disabled', !!voted);
+    });
+  }
+
+  // ---------- news ----------
+  const NEWS_CONTENT = {
+    1:{title:'רשמי: שני שחקנים חדשים מצטרפים לסגל', body:'המועדון מודיע רשמית על שני חיזוקים לקראת סוף העונה. שני השחקנים עברו בדיקות רפואיות ויצטרפו לאימוני הקבוצה כבר השבוע. ההנהלה מקווה שהתגבורת תסייע במרוץ לגמר העונה.'},
+    2:{title:'קפטן הקבוצה: "אנחנו לא מסתכלים על הטבלה"', body:'"אנחנו לוקחים משחק אחד בכל פעם", אמר קפטן הקבוצה בתדרוך לעיתונאים. "המיקוד שלנו הוא בעבודה היומיומית, והתוצאות יגיעו מעצמן אם נמשיך ככה."'},
+  };
+  function openNews(id){
+    const n = NEWS_CONTENT[id];
+    openSheet(n.title, `<div style="font-size:13px; line-height:1.7; color:var(--text);">${n.body}</div>`);
+  }
+  function newsAllHTML(){
+    return `<div style="display:flex; flex-direction:column; gap:14px;">
+      <div><div style="font-weight:700; font-size:13px;">רשמי: שני שחקנים חדשים מצטרפים לסגל</div><div style="font-size:11px; color:var(--text-2); margin-top:2px;">לפני שעה</div></div>
+      <div><div style="font-weight:700; font-size:13px;">קפטן הקבוצה: "אנחנו לא מסתכלים על הטבלה"</div><div style="font-size:11px; color:var(--text-2); margin-top:2px;">לפני 4 שעות</div></div>
+      <div><div style="font-weight:700; font-size:13px;">כרטיסים למשחק הבא נפתחו למכירה</div><div style="font-size:11px; color:var(--text-2); margin-top:2px;">אתמול</div></div>
+    </div>`;
+  }
+  function tableFullHTML(){
+    const home = currentClub || CLUBS[0];
+    const rival = CLUBS.find(c => c.id === RIVALS[home.id]) || CLUBS.find(c => c.id !== home.id);
+    const others = CLUBS.filter(c => c.id !== home.id && c.id !== rival.id);
+    const rows = [
+      {name: others[0] ? others[0].short : 'קבוצה', pts:52, pos:1},
+      {name: others[1] ? others[1].short : 'קבוצה', pts:49, pos:2},
+      {name: home.short, pts:47, pos:3, me:true},
+      {name: rival.short, pts:44, pos:4},
+      {name: others[2] ? others[2].short : 'קבוצה', pts:41, pos:5},
+      {name: others[3] ? others[3].short : 'קבוצה', pts:38, pos:6},
+    ];
+    return `<div class="table-card card">${rows.map(r => `<div class="trow ${r.me ? 'me' : ''}"><span class="pos">${r.pos}</span><span class="name">${r.name}</span><span class="pts">${r.pts}</span></div>`).join('')}</div>`;
+  }
+
+  // ---------- weekly task ----------
+  function renderWeeklyTask(){
+    const t = APP.weeklyTask;
+    const fill = document.getElementById('weeklyTaskFill');
+    const count = document.getElementById('weeklyTaskCount');
+    const card = document.getElementById('weeklyTaskCard');
+    if(fill) fill.style.width = Math.round((t.progress / t.target) * 100) + '%';
+    if(count) count.textContent = `${t.progress}/${t.target}`;
+    if(card) card.classList.toggle('done', t.done);
+  }
+  function tapWeeklyTask(){
+    const t = APP.weeklyTask;
+    if(t.done){ toast('משימת השבוע כבר הושלמה'); return; }
+    t.progress = Math.min(t.target, t.progress + 1);
+    if(t.progress >= t.target) t.done = true;
+    saveAppState();
+    renderWeeklyTask();
+    if(t.done) addPoints(25, 'השלמת משימת השבוע');
+    else toast(`דירגתם שחקן! ${t.progress}/${t.target}`);
+  }
+
+  // ---------- match center: subtabs ----------
+  function setSubtab(name){
+    document.querySelectorAll('#matchSubtabs .pill').forEach(p => p.classList.toggle('on', p.dataset.subtab === name));
+    document.querySelectorAll('.subpanel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+  }
+
+  // ---------- live chat ----------
+  function addChatMessage(text){
+    const list = document.getElementById('chatList');
+    list.insertAdjacentHTML('beforeend', `<div class="chat-msg me"><div class="avatar" style="background:var(--accent-dim); color:var(--accent);">ע</div><div><div class="chat-name">אתה</div><div class="chat-txt">${escapeHTML(text)}</div></div></div>`);
+    const content = document.getElementById('content');
+    content.scrollTop = content.scrollHeight;
+  }
+  let lastChatSend = 0;
+  function sendChat(){
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    const now = Date.now();
+    if(now - lastChatSend < 4000){ toast('מצב איטי פעיל — נסו שוב בעוד רגע'); return; }
+    lastChatSend = now;
+    addChatMessage(text);
+    input.value = '';
+  }
+  let chatSortMode = 'new';
+  let chatOriginalOrder = null;
+  function sumReacts(msgEl){
+    let total = 0;
+    msgEl.querySelectorAll('.chat-reacts span').forEach(s=>{
+      const m = s.textContent.match(/\d+/);
+      if(m) total += parseInt(m[0], 10);
+    });
+    return total;
+  }
+  function toggleChatSort(){
+    const list = document.getElementById('chatList');
+    if(chatOriginalOrder === null) chatOriginalOrder = [...list.children];
+    chatSortMode = chatSortMode === 'new' ? 'popular' : 'new';
+    document.getElementById('chatSortLink').textContent = chatSortMode === 'new' ? 'מיין: חדש' : 'מיין: פופולרי';
+    const items = chatSortMode === 'popular'
+      ? [...list.children].sort((a,b)=> sumReacts(b) - sumReacts(a))
+      : chatOriginalOrder.filter(el => list.contains(el));
+    items.forEach(it => list.appendChild(it));
+    toast(chatSortMode === 'popular' ? 'מוצג לפי הודעות פופולריות' : 'מוצג לפי הודעות חדשות');
+  }
+
+  // ---------- player ratings ----------
+  function tapRateScore(el){
+    if(APP.ratingsSubmitted){ toast('הדירוגים כבר נשלחו'); return; }
+    const player = el.dataset.player;
+    let score = parseInt(el.dataset.score || '5', 10);
+    score = score >= 10 ? 1 : score + 1;
+    el.dataset.score = score;
+    el.textContent = score;
+    el.classList.add('picked');
+    APP.ratings[player] = score;
+    saveAppState();
+  }
+  function tapMvp(el){
+    if(APP.ratingsSubmitted){ toast('הדירוגים כבר נשלחו'); return; }
+    const player = el.dataset.player;
+    APP.mvp = player;
+    saveAppState();
+    document.querySelectorAll('.mvp-star').forEach(s => s.classList.toggle('picked', s.dataset.player === player));
+  }
+  function submitRatings(){
+    if(APP.ratingsSubmitted){ toast('כבר שלחתם את הדירוגים למשחק הזה'); return; }
+    APP.ratingsSubmitted = true;
+    saveAppState();
+    const btn = document.getElementById('submitRatingsBtn');
+    if(btn){ btn.textContent = 'הדירוגים נשלחו ✓'; btn.disabled = true; }
+    addPoints(30, 'דירוג שחקנים');
+    if(!APP.challenges.c1){
+      APP.challenges.c1 = true;
+      saveAppState();
+      renderChallenges();
+    }
+  }
+
+  // ---------- fan points: challenges & badges ----------
+  function renderChallenges(){
+    const c1 = document.getElementById('chalCard1');
+    const c2 = document.getElementById('chalCard2');
+    if(c1) c1.classList.toggle('done', APP.challenges.c1);
+    if(c2) c2.classList.toggle('done', APP.challenges.c2);
+  }
+  function tapChallenge(id, points){
+    if(APP.challenges[id]){ toast('האתגר כבר הושלם'); return; }
+    APP.challenges[id] = true;
+    saveAppState();
+    renderChallenges();
+    addPoints(points, 'השלמת אתגר');
+  }
+  function tapLockedBadge(){
+    toast('נעול · דרגו הרכב שלם לפני 5 משחקים ברציפות כדי לפתוח');
+  }
+
+  // ---------- profile ----------
+  function setProfTab(tab){
+    document.querySelectorAll('#profTabs .prof-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
+    document.querySelectorAll('.prof-panel').forEach(p => { p.style.display = p.dataset.profPanel === tab ? '' : 'none'; });
+  }
+  function settingsToggleRow(key, label){
+    const on = APP.settings[key] ? 'on' : '';
+    return `<div class="sheet-row" style="cursor:default;"><span style="flex:1;">${label}</span><div class="toggle ${on}" data-toggle="${key}"></div></div>`;
+  }
+  function wireToggleRows(){
+    document.querySelectorAll('#sheetBody [data-toggle]').forEach(t=>{
+      t.addEventListener('click', ()=>{
+        const key = t.dataset.toggle;
+        APP.settings[key] = !APP.settings[key];
+        t.classList.toggle('on', APP.settings[key]);
+        saveAppState();
+      });
+    });
+  }
+  function openNotificationSettings(){
+    openSheet('ניהול התראות', [
+      settingsToggleRow('notifRoom','פתיחת חדר המשחק'),
+      settingsToggleRow('notifLineup','הרכב פותח'),
+      settingsToggleRow('notifGoals','שערים ואירועים'),
+      settingsToggleRow('notifNews','חדשות חשובות'),
+      settingsToggleRow('notifComments','תגובות לפוסטים'),
+      settingsToggleRow('notifRewards','משימות והטבות'),
+    ].join(''));
+    wireToggleRows();
+  }
+  function openPrivacySettings(){
+    openSheet('הגדרות פרטיות', [
+      settingsToggleRow('privateProfile','פרופיל פרטי'),
+      settingsToggleRow('hideCity','הסתרת עיר מגורים'),
+      settingsToggleRow('hideActivity','הסתרת פעילות אחרונה'),
+      `<div style="font-size:11.5px; color:var(--text-2); margin-top:14px; line-height:1.6;">מיקום מדויק של אוהדים אינו מוצג באפליקציה בשום מקרה.</div>`,
+    ].join(''));
+    wireToggleRows();
+  }
+  function openSupportSheet(){
+    openSheet('צור קשר עם התמיכה', `
+      <div style="font-size:12.5px; color:var(--text-2); margin-bottom:12px;">נשמח לעזור — כתבו לנו ונחזור אליכם עד 48 שעות. אפשר גם לפנות ישירות ל-support@fanzone.app</div>
+      <textarea id="supportText" placeholder="איך נוכל לעזור?"></textarea>
+      <button class="btn primary" id="supportSend" style="margin-top:14px;">שליחת פנייה</button>
+    `);
+    document.getElementById('supportSend').addEventListener('click', ()=>{
+      const t = document.getElementById('supportText').value.trim();
+      if(!t){ toast('כתבו כמה מילים לפני השליחה'); return; }
+      closeSheet();
+      toast('הפנייה נשלחה! נחזור אליכם בקרוב');
+    });
+  }
+  function openNotifications(){
+    const dot = document.getElementById('bellDot');
+    if(dot) dot.style.display = 'none';
+    const html = APP.notifications.map(n => `
+      <div class="notif-item">
+        <div class="notif-icon">${n.icon}</div>
+        <div><div class="notif-txt">${escapeHTML(n.text)}</div><div class="notif-time">${escapeHTML(n.time)}</div></div>
+      </div>`).join('');
+    openSheet('התראות', html);
+    APP.notifications.forEach(n => n.read = true);
+    saveAppState();
+  }
+
+  // ---------- master click delegation ----------
+  function gotoTab(tab){
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    showScreen(tab);
+    document.getElementById('content').scrollTop = 0;
+  }
+  function ctaRoom(){
+    if(document.getElementById('rig').dataset.phase !== 'live'){ document.querySelector('#phaseSwitch [data-phase="live"]').click(); }
+    gotoTab('match');
+  }
+  function ctaInfo(){
+    const before = document.getElementById('rig').dataset.phase === 'before';
+    gotoTab('match');
+    if(before) setSubtab('info');
+  }
+  function ctaRatings(){
+    if(document.getElementById('rig').dataset.phase !== 'after'){ document.querySelector('#phaseSwitch [data-phase="after"]').click(); }
+    gotoTab('match');
+  }
+  function ctaSummary(){
+    ctaRatings();
+    toast('שתפו את התחושות שלכם על המשחק בקהילה');
+  }
+
+  document.getElementById('content').addEventListener('click', (e)=>{
+    const el = e.target.closest('[data-action]');
+    if(!el) return;
+    const action = el.dataset.action;
+    switch(action){
+      case 'bell': openNotifications(); break;
+      case 'goto-profile': gotoTab('profile'); break;
+      case 'goto-community': gotoTab('community'); break;
+      case 'goto-points': gotoTab('points'); break;
+      case 'like': toggleLike(el.dataset.post); break;
+      case 'comment': openComments(el.dataset.post); break;
+      case 'share': sharePost(); break;
+      case 'more': openMoreMenu(el.dataset.post); break;
+      case 'vote-poll': votePoll(1, el.dataset.opt); break;
+      case 'vote-poll2': votePoll(2, el.dataset.opt); break;
+      case 'open-news': openNews(el.dataset.news); break;
+      case 'news-all': openSheet('כל החדשות', newsAllHTML()); break;
+      case 'table-full': openSheet('טבלת הליגה', tableFullHTML()); break;
+      case 'task-tap': tapWeeklyTask(); break;
+      case 'cta-room': ctaRoom(); break;
+      case 'cta-info': ctaInfo(); break;
+      case 'cta-ratings': ctaRatings(); break;
+      case 'cta-summary': ctaSummary(); break;
+      case 'filter': applyFilter(el.dataset.filter); break;
+      case 'search-toggle': toggleSearch(); break;
+      case 'create-post': openCreatePost(); break;
+      case 'subtab': setSubtab(el.dataset.subtab); break;
+      case 'chat-emoji': addChatMessage(el.dataset.emoji); break;
+      case 'chat-send': sendChat(); break;
+      case 'chat-sort': toggleChatSort(); break;
+      case 'rate-tap': tapRateScore(el); break;
+      case 'set-mvp': tapMvp(el); break;
+      case 'submit-ratings': submitRatings(); break;
+      case 'challenge': tapChallenge(el.dataset.challenge, parseInt(el.dataset.points, 10)); break;
+      case 'badge-locked': tapLockedBadge(); break;
+      case 'prof-tab': setProfTab(el.dataset.tab); break;
+      case 'menu-notifications': openNotificationSettings(); break;
+      case 'menu-privacy': openPrivacySettings(); break;
+      case 'menu-support': openSupportSheet(); break;
+      case 'menu-delete':
+        openConfirm('מחיקת חשבון', 'הפעולה תמחק את החשבון, הפוסטים והנתונים שלך לצמיתות. לא ניתן לבטל.', ()=>{
+          toast('הבקשה למחיקת חשבון התקבלה. נציג יצור קשר תוך 48 שעות לאימות סופי');
+        });
+        break;
+      case 'scroll-settings': document.getElementById('settingsHead').scrollIntoView({behavior:'smooth', block:'start'}); break;
+      case 'info-row': toast(el.dataset.info); break;
+      case 'tickets-link': toast('פותח את אתר הכרטיסים הרשמי…'); break;
+      case 'join-meetup': addPoints(5, 'הצטרפות למפגש אוהדים'); toast('נרשמתם למפגש! נתראה שם 🙌'); break;
+    }
+  });
+  document.getElementById('chatInput').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); sendChat(); } });
+
+  function initInteractive(){
+    document.querySelectorAll('.rate-score').forEach(el=>{
+      const p = el.dataset.player;
+      if(APP.ratings[p] !== undefined){ el.dataset.score = APP.ratings[p]; el.textContent = APP.ratings[p]; }
+    });
+    document.querySelectorAll('.mvp-star').forEach(s => s.classList.toggle('picked', String(APP.mvp) === s.dataset.player));
+    if(APP.ratingsSubmitted){
+      const btn = document.getElementById('submitRatingsBtn');
+      if(btn){ btn.textContent = 'הדירוגים נשלחו ✓'; btn.disabled = true; }
+    }
+    renderWeeklyTask();
+    renderChallenges();
+    renderPoll(1);
+    renderPoll(2);
+    syncPointsUI();
+    renderCreatedPosts();
+    APP.hiddenPosts.forEach(id => document.querySelectorAll(`.post[data-post-id="${id}"]`).forEach(el => el.remove()));
+    const bellDot = document.getElementById('bellDot');
+    if(bellDot) bellDot.style.display = APP.notifications.some(n => !n.read) ? '' : 'none';
+  }
+
+  // ---------- tab switching ----------
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      showScreen(btn.dataset.tab);
+      document.getElementById('content').scrollTop = 0;
+    });
+  });
+
+  // ---------- match-phase switching (demo control) ----------
+  const rig = document.getElementById('rig');
+  document.querySelectorAll('#phaseSwitch button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#phaseSwitch button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const phase = btn.dataset.phase;
+      rig.dataset.phase = phase;
+      document.querySelectorAll('[data-phase-el]').forEach(el=>{
+        el.style.display = (el.dataset.phaseEl === phase) ? '' : 'none';
+      });
+    });
+  });
+  document.querySelectorAll('[data-phase-el]').forEach(el=>{
+    el.style.display = (el.dataset.phaseEl === 'before') ? '' : 'none';
+  });
+
+  // ---------- init ----------
+  renderClubList('', null);
+  const savedId = localStorage.getItem(STORAGE_KEY);
+  const savedClub = CLUBS.find(c => c.id === savedId);
+  if (savedClub){
+    enterApp(savedClub);
+  } else {
+    showScreen('onboarding');
+  }
+  initInteractive();
+</script>
+</body>
+</html>
