@@ -80,6 +80,41 @@
   .phase-switch button.active{background:var(--accent); color:#fff;}
   .phase-switch button:not(.active):hover{color:var(--text); background:var(--surface-2);}
 
+  /* desktop showcase: hero copy + feature list beside the phone mockup */
+  .layout{ display:contents; }
+  .showcase-panel{ display:contents; }
+  .feature-list{
+    list-style:none; margin:14px 0 0; padding:0; width:100%; max-width:360px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .feature-item{
+    display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text);
+    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px;
+    text-align:right;
+  }
+  .feature-icon{
+    width:28px; height:28px; border-radius:9px; background:var(--accent-dim);
+    display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;
+  }
+  .demo-hint{ display:flex; flex-direction:column; gap:8px; align-items:center; margin-top:4px; }
+  .demo-label{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-2); }
+
+  @media (min-width: 901px){
+    .layout{
+      display:flex; flex-direction:row; align-items:center; justify-content:center;
+      gap:72px; max-width:1180px; margin:0 auto; padding:0 24px;
+    }
+    .showcase-panel{
+      display:flex; flex-direction:column; align-items:flex-start; gap:22px;
+      max-width:420px; flex-shrink:0;
+    }
+    .lab-title{ text-align:right; }
+    .lab-title .brand{ font-size:42px; letter-spacing:-0.02em; }
+    .lab-title .sub{ font-size:15.5px; margin-top:12px; max-width:380px; line-height:1.65; }
+    .demo-hint{ align-items:flex-start; }
+    footer.note{ max-width:1180px; margin:32px auto 0; }
+  }
+
   /* ---------- phone rig ---------- */
   .rig{
     position:relative;
@@ -585,6 +620,8 @@
     .lab-title .sub{ display:none; }
     .lab-title .brand{ font-size:14px; }
     .phase-switch{ flex-shrink:0; transform:scale(.88); }
+    .feature-list{ display:none; }
+    .demo-label{ display:none; }
     footer.note{ display:none; }
     .rig{ flex:1; width:100%; min-height:0; }
     .glow{ display:none; }
@@ -764,16 +801,29 @@
 </head>
 <body>
 
-  <div class="lab-title">
-    <div class="brand">Fan<span>Zone</span> · פרוטוטייפ MVP</div>
-    <div class="sub">מרכז המשחק, קהילה, Fan Points ופרופיל — לפי המסמך המלא</div>
-  </div>
+  <div class="layout">
+    <div class="showcase-panel">
+      <div class="lab-title">
+        <div class="brand">Fan<span>Zone</span></div>
+        <div class="sub">הבית הדיגיטלי של האוהד — לפני, בזמן ואחרי כל משחק, במקום אחד.</div>
+      </div>
 
-  <div class="phase-switch" id="phaseSwitch">
-    <button data-phase="before" class="active">לפני משחק</button>
-    <button data-phase="live">משחק חי</button>
-    <button data-phase="after">אחרי משחק</button>
-  </div>
+      <ul class="feature-list">
+        <li class="feature-item"><span class="feature-icon">⚽</span>14 קבוצות ליגת העל, כל אחת בצבעי המועדון האמיתיים שלה</li>
+        <li class="feature-item"><span class="feature-icon">🔴</span>חדר משחק חי — ציר זמן, צ'אט ותגובות אוהדים בזמן אמת</li>
+        <li class="feature-item"><span class="feature-icon">🏆</span>Fan Points, משימות שבועיות, תגים והטבות</li>
+        <li class="feature-item"><span class="feature-icon">💬</span>קהילת אוהדים — פוסטים, סקרים ודירוג שחקנים</li>
+      </ul>
+
+      <div class="demo-hint">
+        <span class="demo-label">הדגמת מצב משחק</span>
+        <div class="phase-switch" id="phaseSwitch">
+          <button data-phase="before" class="active">לפני משחק</button>
+          <button data-phase="live">משחק חי</button>
+          <button data-phase="after">אחרי משחק</button>
+        </div>
+      </div>
+    </div>
 
   <div class="rig" id="rig" data-phase="before">
     <div class="glow"></div>
@@ -1277,6 +1327,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <footer class="note">
