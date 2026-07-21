@@ -1489,7 +1489,6 @@
       likes: { p1:{count:128,liked:false}, p2:{count:212,liked:false}, p3:{count:340,liked:false}, p4:{count:76,liked:false}, p5:{count:64,liked:false} },
       comments: {},
       hiddenPosts: [],
-      createdPosts: [],
       pollVote: null,
       pollVote2: null,
       weeklyTask: { progress:3, target:5, done:false },
@@ -1589,7 +1588,7 @@
   }
 
   // ---------- likes / comments / share / report ----------
-  function toggleLike(postId){
+  async function toggleLike(postId){
     const l = APP.likes[postId];
     if(!l) return;
     l.liked = !l.liked;
@@ -1597,6 +1596,18 @@
     saveAppState();
     document.querySelectorAll(`[data-like-count="${postId}"]`).forEach(el => el.textContent = l.count);
     document.querySelectorAll(`[data-action="like"][data-post="${postId}"]`).forEach(el => el.classList.toggle('active', l.liked));
+    try{
+      const r = await fetch('/api/likes', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ postId, delta: l.liked ? 1 : -1 })
+      });
+      const data = await r.json();
+      if(data.ok && typeof data.count === 'number'){
+        l.count = data.count;
+        saveAppState();
+        document.querySelectorAll(`[data-like-count="${postId}"]`).forEach(el => el.textContent = l.count);
+      }
+    }catch(e){ /* offline / not on Vercel — optimistic local count stands */ }
   }
   function syncAllLikeUI(){
     Object.keys(APP.likes).forEach(id=>{
@@ -1605,27 +1616,47 @@
       document.querySelectorAll(`[data-action="like"][data-post="${id}"]`).forEach(el => el.classList.toggle('active', l.liked));
     });
   }
+  async function fetchRealLikes(){
+    try{
+      const r = await fetch('/api/likes');
+      const data = await r.json();
+      if(!data.ok) return;
+      Object.entries(data.counts).forEach(([id, count])=>{
+        if(!APP.likes[id]) APP.likes[id] = { count, liked:false };
+        else APP.likes[id].count = count;
+      });
+      syncAllLikeUI();
+    }catch(e){ /* offline / not on Vercel — keep local baseline counts */ }
+  }
+  let activeCommentsPostId = null;
+
   function openComments(postId){
-    const list = APP.comments[postId] || [];
-    const itemsHTML = list.length
-      ? list.map(c => `<div class="comment-item"><div class="avatar" style="width:28px;height:28px;">${c.initials}</div><div><div class="comment-name">${escapeHTML(c.name)}</div><div class="comment-txt">${escapeHTML(c.text)}</div></div></div>`).join('')
-      : `<div style="text-align:center; color:var(--text-2); font-size:12.5px; padding:20px 0;">אין עדיין תגובות. תהיו הראשונים.</div>`;
+    activeCommentsPostId = postId;
     openSheet('תגובות', `
-      <div id="commentsItems">${itemsHTML}</div>
+      <div id="commentsItems" style="text-align:center; color:var(--text-2); font-size:12.5px; padding:20px 0;">טוען תגובות…</div>
       <div class="comment-input-row">
         <input type="text" id="newCommentInput" placeholder="כתבו תגובה…">
         <button class="send-btn" id="newCommentSend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
       </div>
     `);
-    const send = ()=>{
+    loadComments(postId);
+
+    const send = async ()=>{
       const input = document.getElementById('newCommentInput');
       const text = input.value.trim();
       if(!text) return;
+      input.value = '';
       if(!APP.comments[postId]) APP.comments[postId] = [];
       APP.comments[postId].push({name:'אתה', initials:'ע', text});
       saveAppState();
-      openComments(postId);
+      try{
+        await fetch('/api/comments', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ postId, name:'אתה', initials:'ע', text })
+        });
+      }catch(e){ /* saved locally regardless — will show via fallback */ }
       toast('התגובה פורסמה');
+      loadComments(postId);
       if(!APP.challenges.c2){
         APP._c2progress = (APP._c2progress||0) + 1;
         if(APP._c2progress >= 3){
@@ -1638,6 +1669,22 @@
     };
     document.getElementById('newCommentSend').addEventListener('click', send);
     document.getElementById('newCommentInput').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
+  }
+
+  async function loadComments(postId){
+    let list = null;
+    try{
+      const r = await fetch('/api/comments?postId=' + encodeURIComponent(postId));
+      const data = await r.json();
+      if(data.ok) list = data.comments;
+    }catch(e){ /* fall back below */ }
+    if(activeCommentsPostId !== postId) return; // user moved on to another post's sheet
+    if(!list) list = APP.comments[postId] || [];
+    const host = document.getElementById('commentsItems');
+    if(!host) return;
+    host.innerHTML = list.length
+      ? list.map(c => `<div class="comment-item"><div class="avatar" style="width:28px;height:28px;">${escapeHTML(c.initials || 'א')}</div><div><div class="comment-name">${escapeHTML(c.name)}</div><div class="comment-txt">${escapeHTML(c.text)}</div></div></div>`).join('')
+      : `<div style="text-align:center; color:var(--text-2); font-size:12.5px; padding:20px 0;">אין עדיין תגובות. תהיו הראשונים.</div>`;
   }
   function sharePost(){ toast('הקישור הועתק ללוח'); }
   function hidePost(postId){
@@ -1675,11 +1722,12 @@
 
   // ---------- create post ----------
   function postHTML(p){
+    const author = escapeHTML(p.author || 'אתה');
     return `
     <div class="post card" data-post-id="${p.id}" data-topic="${p.topic}" data-created="1">
       <div class="post-head">
-        <div class="avatar" style="background:var(--accent-dim); color:var(--accent);">ע</div>
-        <div class="post-user"><div class="post-name-row"><span class="post-name">אתה</span></div><div class="post-time">${p.time}</div></div>
+        <div class="avatar" style="background:var(--accent-dim); color:var(--accent);">${author.slice(0,2)}</div>
+        <div class="post-user"><div class="post-name-row"><span class="post-name">${author}</span></div><div class="post-time">${p.time}</div></div>
         <button class="icon-btn" style="width:30px;height:30px;" data-action="more" data-post="${p.id}"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
       </div>
       <div class="post-text" style="margin-top:10px;">${escapeHTML(p.text)}</div>
@@ -1690,14 +1738,31 @@
       </div>
     </div>`;
   }
-  function renderCreatedPosts(){
+
+  let feedPosts = []; // real posts from the shared DB (or a local-only fallback list), newest first
+
+  function renderFeedPosts(){
     const feed = document.getElementById('communityFeed');
     if(!feed) return;
     feed.querySelectorAll('.post[data-created="1"]').forEach(el => el.remove());
-    APP.createdPosts.slice().reverse().forEach(p => feed.insertAdjacentHTML('afterbegin', postHTML(p)));
+    feedPosts.forEach(p => {
+      if(!APP.likes[p.id]) APP.likes[p.id] = { count:0, liked:false };
+      feed.insertAdjacentHTML('afterbegin', postHTML(p));
+    });
     syncAllLikeUI();
     applyFilter(currentFilter);
   }
+
+  async function fetchRealPosts(){
+    try{
+      const r = await fetch('/api/posts');
+      const data = await r.json();
+      if(!data.ok) return;
+      feedPosts = data.posts.map(p => ({ id:p.id, text:p.text, topic:p.topic || 'all', time: timeAgoHe(p.createdAt) || 'עכשיו', author:p.author }));
+      renderFeedPosts();
+    }catch(e){ /* offline / not on Vercel — community feed just shows the seed posts */ }
+  }
+
   function openCreatePost(){
     openSheet('פוסט חדש', `
       <textarea id="newPostText" placeholder="מה קורה? שתפו את הקהילה..."></textarea>
@@ -1717,14 +1782,22 @@
         selectedTopic = chip.dataset.topic;
       });
     });
-    document.getElementById('publishPostBtn').addEventListener('click', ()=>{
+    document.getElementById('publishPostBtn').addEventListener('click', async ()=>{
       const text = document.getElementById('newPostText').value.trim();
       if(!text){ toast('כתבו משהו לפני הפרסום'); return; }
-      const id = 'u' + Date.now();
-      APP.createdPosts.push({id, text, topic:selectedTopic, time:'עכשיו'});
-      APP.likes[id] = {count:0, liked:false};
-      saveAppState();
-      renderCreatedPosts();
+      try{
+        const r = await fetch('/api/posts', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ text, topic:selectedTopic, author:'אתה' })
+        });
+        const data = await r.json();
+        if(!data.ok) throw new Error('publish failed');
+        feedPosts.unshift({ id:data.post.id, text:data.post.text, topic:data.post.topic, time:'עכשיו', author:data.post.author });
+      }catch(e){
+        const id = 'u' + Date.now();
+        feedPosts.unshift({ id, text, topic:selectedTopic, time:'עכשיו', author:'אתה' });
+      }
+      renderFeedPosts();
       closeSheet();
       addPoints(10, 'פרסום פוסט חדש');
     });
@@ -1765,24 +1838,38 @@
 
   // ---------- polls ----------
   const POLL_BASE = { 1:{a:610,b:240,c:150}, 2:{a:480,b:200,c:320} };
-  function votePoll(pollNum, opt){
+  async function votePoll(pollNum, opt){
     const key = pollNum === 1 ? 'pollVote' : 'pollVote2';
     if(APP[key]){ toast('כבר הצבעתם בסקר הזה'); return; }
     APP[key] = opt;
     saveAppState();
+    try{
+      await fetch('/api/polls', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ pollId:pollNum, option:opt })
+      });
+    }catch(e){ /* still recorded locally — renderPoll's fallback covers it */ }
     renderPoll(pollNum);
     addPoints(5, 'הצבעה בסקר');
   }
-  function renderPoll(pollNum){
-    const base = Object.assign({}, POLL_BASE[pollNum]);
+  async function renderPoll(pollNum){
     const key = pollNum === 1 ? 'pollVote' : 'pollVote2';
     const voted = APP[key];
-    if(voted) base[voted] += 1;
-    const total = base.a + base.b + base.c;
+    let base = null;
+    try{
+      const r = await fetch('/api/polls?pollId=' + pollNum);
+      const data = await r.json();
+      if(data.ok) base = data.counts;
+    }catch(e){ /* fall back below */ }
+    if(!base){
+      base = Object.assign({}, POLL_BASE[pollNum]);
+      if(voted) base[voted] = (base[voted] || 0) + 1;
+    }
+    const total = (base.a||0) + (base.b||0) + (base.c||0) || 1;
     const selector = pollNum === 1 ? '[data-action="vote-poll"]' : '[data-action="vote-poll2"]';
     document.querySelectorAll(selector).forEach(opt=>{
       const o = opt.dataset.opt;
-      const pct = Math.round((base[o] / total) * 100);
+      const pct = Math.round(((base[o]||0) / total) * 100);
       opt.querySelector('.poll-fill').style.width = pct + '%';
       opt.querySelector('.row span:last-child').textContent = pct + '%';
       opt.classList.toggle('voted', voted === o);
@@ -2217,7 +2304,8 @@
     renderPoll(1);
     renderPoll(2);
     syncPointsUI();
-    renderCreatedPosts();
+    fetchRealLikes();
+    fetchRealPosts();
     APP.hiddenPosts.forEach(id => document.querySelectorAll(`.post[data-post-id="${id}"]`).forEach(el => el.remove()));
     const bellDot = document.getElementById('bellDot');
     if(bellDot) bellDot.style.display = APP.notifications.some(n => !n.read) ? '' : 'none';
