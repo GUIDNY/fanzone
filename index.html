@@ -1980,6 +1980,10 @@
       html += `<div class="real-score-row"><span class="l">המשחק הבא בפועל</span><span class="v">${escapeHTML(data.next.home)} נגד ${escapeHTML(data.next.away)}</span></div>`;
       html += `<div class="real-score-row"><span class="l">מתי</span><span class="v">${fmtFixtureDate(data.next.date, data.next.time)} · ${escapeHTML(data.next.league || '')}</span></div>`;
     }
+    if(data.standing){
+      const s = data.standing;
+      html += `<div class="real-score-row"><span class="l">מיקום אמיתי בטבלה</span><span class="v">מקום ${escapeHTML(String(s.rank))} · ${escapeHTML(String(s.points))} נק' (${escapeHTML(String(s.win))}נ ${escapeHTML(String(s.draw))}ת ${escapeHTML(String(s.loss))}ה)</span></div>`;
+    }
     html += `</div>`;
     slot.innerHTML = html;
   }

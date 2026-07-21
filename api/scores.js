@@ -47,6 +47,35 @@ function pickEvent(e) {
   };
 }
 
+// The free tier's table endpoint only returns a handful of rows (looks
+// like a mixed sample of the championship/relegation split groups), so
+// most clubs won't appear in it. Cached per lookup — it's the same call
+// for every club, no reason to re-fetch per request.
+let tableCache = null;
+let tableCacheAt = 0;
+const TABLE_TTL_MS = 30 * 60 * 1000;
+
+async function fetchTable() {
+  const now = Date.now();
+  if (tableCache && now - tableCacheAt < TABLE_TTL_MS) return tableCache;
+  const data = await tsdb('/lookuptable.php?l=4644&s=2025-2026');
+  tableCache = data.table || [];
+  tableCacheAt = now;
+  return tableCache;
+}
+
+function pickStanding(row) {
+  if (!row) return null;
+  return {
+    rank: row.intRank,
+    played: row.intPlayed,
+    win: row.intWin,
+    draw: row.intDraw,
+    loss: row.intLoss,
+    points: row.intPoints,
+  };
+}
+
 module.exports = async function handler(req, res) {
   try {
     const clubId = (req.query.club || '').toString();
@@ -56,16 +85,18 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const [lastData, nextData] = await Promise.all([
+    const [lastData, nextData, table] = await Promise.all([
       tsdb(`/eventslast.php?id=${teamId}`),
       tsdb(`/eventsnext.php?id=${teamId}`),
+      fetchTable().catch(() => []),
     ]);
 
     const last = pickEvent((lastData.results || [])[0]);
     const next = pickEvent((nextData.events || [])[0]);
+    const standing = pickStanding(table.find(row => row.idTeam === teamId));
 
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=1800');
-    res.status(200).json({ configured: true, found: true, last, next });
+    res.status(200).json({ configured: true, found: true, last, next, standing });
   } catch (err) {
     res.status(200).json({ configured: true, error: String(err && err.message || err) });
   }
