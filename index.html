@@ -1241,10 +1241,7 @@
               </div>
             </div>
             <div class="prof-panel" data-prof-panel="comments" style="display:none;">
-              <div class="card" style="margin:0 18px 20px; padding:4px 14px;">
-                <div class="comment-item"><div class="avatar" style="width:28px;height:28px;">ע</div><div><div class="comment-name">אתה, על "רשמי: שני שחקנים חדשים..."</div><div class="comment-txt">סוף סוף! חסר לנו עומק בהרכב.</div></div></div>
-                <div class="comment-item"><div class="avatar" style="width:28px;height:28px;">ע</div><div><div class="comment-name">אתה, על מפגש האוהדים</div><div class="comment-txt">אני ומשפחה מגיעים, מחכים לזה כל השבוע!</div></div></div>
-              </div>
+              <div class="card" style="margin:0 18px 20px; padding:4px 14px;" id="myCommentsList"></div>
             </div>
             <div class="prof-panel" data-prof-panel="achievements" style="display:none;">
               <div class="badge-grid" style="padding-bottom:20px;">
@@ -1805,9 +1802,12 @@
   function newsAllHTML(){
     if(realNewsItems && realNewsItems.length){
       return `<div style="display:flex; flex-direction:column; gap:14px;">${realNewsItems.map(it => `
-        <a href="${it.link}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
-          <div style="font-weight:700; font-size:13px; line-height:1.4;">${escapeHTML(it.title)}</div>
-          <div style="font-size:11px; color:var(--text-2); margin-top:2px;">${escapeHTML(it.source || '')} · ${timeAgoHe(it.pubDate)}</div>
+        <a href="${it.link}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:flex; gap:10px; align-items:center;">
+          ${it.image ? `<div style="width:56px; height:56px; border-radius:10px; flex-shrink:0; background-image:url('${it.image.replace(/'/g,"")}'); background-size:cover; background-position:center;"></div>` : ''}
+          <div style="min-width:0;">
+            <div style="font-weight:700; font-size:13px; line-height:1.4;">${escapeHTML(it.title)}</div>
+            <div style="font-size:11px; color:var(--text-2); margin-top:2px;">${escapeHTML(it.source || '')} · ${timeAgoHe(it.pubDate)}</div>
+          </div>
         </a>`).join('')}</div>`;
     }
     return `<div style="display:flex; flex-direction:column; gap:14px;">
@@ -1840,7 +1840,7 @@
     if(!host) return;
     host.innerHTML = realNewsItems.slice(0, 6).map((it, i) => `
       <div class="news-card real" data-action="open-real-news" data-idx="${i}">
-        <div class="news-thumb"><span class="tag">${escapeHTML(it.source || 'חדשות')}</span></div>
+        <div class="news-thumb"${it.image ? ` style="background-image:url('${it.image.replace(/'/g,"")}'); background-size:cover; background-position:center;"` : ''}><span class="tag">${escapeHTML(it.source || 'חדשות')}</span></div>
         <div class="news-body"><div class="t">${escapeHTML(it.title)}</div><div class="m">${timeAgoHe(it.pubDate)}</div></div>
       </div>`).join('');
     if(tag) tag.style.display = '';
@@ -1848,13 +1848,24 @@
 
   async function fetchRealNews(club){
     try{
-      const r = await fetch('/api/news?q=' + encodeURIComponent(club.name + ' כדורגל'));
+      const r = await fetch('/api/news?club=' + encodeURIComponent(club.name));
       if(!r.ok) return;
       const data = await r.json();
       if(!data.ok || !data.items || !data.items.length) return;
       realNewsItems = data.items;
       renderRealNews();
     }catch(e){ /* offline / not on Vercel — keep static demo news */ }
+  }
+
+  function openRealNewsSheet(it){
+    const img = it.image ? `<div style="width:100%; height:160px; border-radius:12px; margin-bottom:14px; background-image:url('${it.image.replace(/'/g,"")}'); background-size:cover; background-position:center;"></div>` : '';
+    const excerpt = it.excerpt ? `<div style="font-size:13px; line-height:1.7; color:var(--text); margin-bottom:16px;">${escapeHTML(it.excerpt)}</div>` : '';
+    openSheet(it.title, `
+      ${img}
+      ${excerpt}
+      <div style="font-size:11.5px; color:var(--text-2); margin-bottom:14px;">${escapeHTML(it.source || '')} · ${timeAgoHe(it.pubDate)}</div>
+      <a href="${it.link}" target="_blank" rel="noopener" class="btn primary" style="text-decoration:none; display:flex;">לכתבה המלאה</a>
+    `);
   }
 
   function fmtFixtureDate(dstr){
@@ -2026,6 +2037,29 @@
   function setProfTab(tab){
     document.querySelectorAll('#profTabs .prof-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
     document.querySelectorAll('.prof-panel').forEach(p => { p.style.display = p.dataset.profPanel === tab ? '' : 'none'; });
+    if(tab === 'comments') renderMyComments();
+  }
+  function labelForPost(postId){
+    if(postId === 'p5' || postId.startsWith('u')) return 'הפוסט שלך';
+    const meta = POSTS_META[postId];
+    return meta ? `הפוסט של ${meta.name}` : 'פוסט בקהילה';
+  }
+  function renderMyComments(){
+    const host = document.getElementById('myCommentsList');
+    if(!host) return;
+    const mine = [];
+    Object.keys(APP.comments).forEach(postId=>{
+      (APP.comments[postId] || []).forEach(c=>{
+        if(c.name === 'אתה') mine.push(Object.assign({postId}, c));
+      });
+    });
+    if(!mine.length){
+      host.innerHTML = `<div style="text-align:center; color:var(--text-2); font-size:12.5px; padding:20px 0;">עדיין לא הגבתם לאף פוסט. התגובות שלכם יופיעו כאן.</div>`;
+      return;
+    }
+    host.innerHTML = mine.map(c => `
+      <div class="comment-item"><div class="avatar" style="width:28px;height:28px;">ע</div><div><div class="comment-name">${escapeHTML(labelForPost(c.postId))}</div><div class="comment-txt">${escapeHTML(c.text)}</div></div></div>
+    `).join('');
   }
   function settingsToggleRow(key, label){
     const on = APP.settings[key] ? 'on' : '';
@@ -2129,7 +2163,7 @@
       case 'open-news': openNews(el.dataset.news); break;
       case 'open-real-news': {
         const it = realNewsItems && realNewsItems[parseInt(el.dataset.idx, 10)];
-        if(it) window.open(it.link, '_blank', 'noopener');
+        if(it) openRealNewsSheet(it);
         break;
       }
       case 'news-all': openSheet('כל החדשות', newsAllHTML()); break;
