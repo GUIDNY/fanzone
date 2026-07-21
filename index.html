@@ -223,6 +223,16 @@
     margin:22px 18px 12px;
   }
   .section-head h2{font-size:16px; font-weight:700;}
+  .live-source-tag{
+    font-size:9.5px; font-weight:700; color:var(--live); background:#24C87518;
+    border:1px solid #24C87540; border-radius:999px; padding:2px 7px; margin-inline-start:8px;
+    vertical-align:middle; letter-spacing:.02em;
+  }
+  .news-card.real{cursor:pointer;}
+  .real-score-card{margin:0 18px 18px; padding:14px; display:flex; flex-direction:column; gap:10px;}
+  .real-score-row{display:flex; align-items:center; justify-content:space-between; font-size:12.5px;}
+  .real-score-row .l{color:var(--text-2);}
+  .real-score-row .v{font-weight:700;}
   .section-head a{font-size:12.5px; color:var(--accent); font-weight:600; text-decoration:none;}
 
   .card{
@@ -910,8 +920,8 @@
               <div class="poll-opt" data-action="vote-poll" data-opt="c"><div class="poll-fill" style="width:15%"></div><div class="row"><span>תלוי בפציעות</span><span>15%</span></div></div>
             </div>
 
-            <div class="section-head"><h2>חדשות אחרונות</h2><a href="#" data-action="news-all">הכל</a></div>
-            <div class="hscroll">
+            <div class="section-head"><h2>חדשות אחרונות <span class="live-source-tag" id="newsSourceTag" style="display:none;">Google News</span></h2><a href="#" data-action="news-all">הכל</a></div>
+            <div class="hscroll" id="newsHscroll">
               <div class="news-card" data-action="open-news" data-news="1">
                 <div class="news-thumb"><span class="tag">רשמי</span></div>
                 <div class="news-body"><div class="t">רשמי: שני שחקנים חדשים מצטרפים לסגל <span class="js-home-short">הפועל ירקון</span></div><div class="m">לפני שעה</div></div>
@@ -1039,6 +1049,7 @@
               </div>
 
               <div class="subpanel active" data-panel="overview">
+                <div id="realScoreSlot"></div>
                 <div class="section-head" style="margin-top:0;"><h2>חמשת המשחקים האחרונים</h2></div>
                 <div style="display:flex; justify-content:space-around; margin:0 18px 18px;">
                   <div style="text-align:center;"><div class="tname js-home-short" style="margin-bottom:6px;">ירקון</div><div class="form-dots"><span class="fdot w">נ</span><span class="fdot w">נ</span><span class="fdot d">ת</span><span class="fdot w">נ</span><span class="fdot l">ה</span></div></div>
@@ -1308,20 +1319,20 @@
   // colors (official brand hex isn't publicly documented) — sourced via web
   // search of each club's Hebrew Wikipedia / press coverage of their colors.
   const CLUBS = [
-    {id:'maccabi_tel_aviv',    name:'מכבי תל אביב',       short:'מכבי ת"א',     mono:'מת', city:'תל אביב',        stadium:'אצטדיון בלומפילד, תל אביב',   accent:'#FFC72C'},
-    {id:'hapoel_tel_aviv',     name:'הפועל תל אביב',      short:'הפועל ת"א',    mono:'הת', city:'תל אביב',        stadium:'אצטדיון בלומפילד, תל אביב',   accent:'#E1261C'},
-    {id:'maccabi_haifa',       name:'מכבי חיפה',          short:'מכבי חיפה',    mono:'מח', city:'חיפה',           stadium:'אצטדיון סמי עופר, חיפה',      accent:'#17A54D'},
-    {id:'hapoel_haifa',        name:'הפועל חיפה',         short:'הפועל חיפה',   mono:'הח', city:'חיפה',           stadium:'אצטדיון סמי עופר, חיפה',      accent:'#C62828'},
-    {id:'beitar',              name:'בית"ר ירושלים',      short:'בית"ר',        mono:'בי', city:'ירושלים',        stadium:'אצטדיון טדי, ירושלים',        accent:'#D4A017'},
-    {id:'hapoel_jerusalem',    name:'הפועל ירושלים',      short:'הפועל י-ם',    mono:'הי', city:'ירושלים',        stadium:'אצטדיון טדי, ירושלים',        accent:'#B7302A'},
-    {id:'hapoel_beer_sheva',   name:'הפועל באר שבע',      short:'הפועל ב"ש',    mono:'הב', city:'באר שבע',        stadium:'אצטדיון טרנר, באר שבע',       accent:'#DC2E22'},
-    {id:'bnei_sakhnin',        name:'בני סכנין',          short:'סכנין',        mono:'בס', city:'סכנין',          stadium:'אצטדיון דוחא, סכנין',         accent:'#D6291E'},
-    {id:'maccabi_netanya',     name:'מכבי נתניה',         short:'מכבי נתניה',   mono:'מנ', city:'נתניה',          stadium:'האצטדיון העירוני, נתניה',     accent:'#2F6FE4'},
-    {id:'hapoel_petah_tikva',  name:'הפועל פתח תקווה',    short:'הפועל פ"ת',    mono:'הפ', city:'פתח תקווה',      stadium:'אצטדיון המושבה, פתח תקווה',   accent:'#CB3A2E'},
-    {id:'ms_ashdod',           name:'מ.ס אשדוד',          short:'מ.ס אשדוד',    mono:'אש', city:'אשדוד',          stadium:'אצטדיון י"א, אשדוד',          accent:'#E2A63B'},
-    {id:'maccabi_bnei_reina',  name:'מכבי בני ריינה',     short:'בני ריינה',    mono:'בר', city:'ריינה',          stadium:'האצטדיון העירוני, ריינה',     accent:'#2E9E52'},
-    {id:'ironi_tiberias',      name:'עירוני טבריה',       short:'עירוני טבריה', mono:'עט', city:'טבריה',          stadium:'האצטדיון העירוני, טבריה',     accent:'#7A2048'},
-    {id:'ironi_kiryat_shmona', name:'עירוני קריית שמונה', short:'קריית שמונה',  mono:'קש', city:'קריית שמונה',    stadium:'האצטדיון העירוני, קריית שמונה', accent:'#E8641E'},
+    {id:'maccabi_tel_aviv',    name:'מכבי תל אביב',       short:'מכבי ת"א',     mono:'מת', city:'תל אביב',        stadium:'אצטדיון בלומפילד, תל אביב',   accent:'#FFC72C', engName:'Maccabi Tel Aviv'},
+    {id:'hapoel_tel_aviv',     name:'הפועל תל אביב',      short:'הפועל ת"א',    mono:'הת', city:'תל אביב',        stadium:'אצטדיון בלומפילד, תל אביב',   accent:'#E1261C', engName:'Hapoel Tel Aviv'},
+    {id:'maccabi_haifa',       name:'מכבי חיפה',          short:'מכבי חיפה',    mono:'מח', city:'חיפה',           stadium:'אצטדיון סמי עופר, חיפה',      accent:'#17A54D', engName:'Maccabi Haifa'},
+    {id:'hapoel_haifa',        name:'הפועל חיפה',         short:'הפועל חיפה',   mono:'הח', city:'חיפה',           stadium:'אצטדיון סמי עופר, חיפה',      accent:'#C62828', engName:'Hapoel Haifa'},
+    {id:'beitar',              name:'בית"ר ירושלים',      short:'בית"ר',        mono:'בי', city:'ירושלים',        stadium:'אצטדיון טדי, ירושלים',        accent:'#D4A017', engName:'Beitar Jerusalem'},
+    {id:'hapoel_jerusalem',    name:'הפועל ירושלים',      short:'הפועל י-ם',    mono:'הי', city:'ירושלים',        stadium:'אצטדיון טדי, ירושלים',        accent:'#B7302A', engName:'Hapoel Jerusalem'},
+    {id:'hapoel_beer_sheva',   name:'הפועל באר שבע',      short:'הפועל ב"ש',    mono:'הב', city:'באר שבע',        stadium:'אצטדיון טרנר, באר שבע',       accent:'#DC2E22', engName:'Hapoel Beer Sheva'},
+    {id:'bnei_sakhnin',        name:'בני סכנין',          short:'סכנין',        mono:'בס', city:'סכנין',          stadium:'אצטדיון דוחא, סכנין',         accent:'#D6291E', engName:'Bnei Sakhnin'},
+    {id:'maccabi_netanya',     name:'מכבי נתניה',         short:'מכבי נתניה',   mono:'מנ', city:'נתניה',          stadium:'האצטדיון העירוני, נתניה',     accent:'#2F6FE4', engName:'Maccabi Netanya'},
+    {id:'hapoel_petah_tikva',  name:'הפועל פתח תקווה',    short:'הפועל פ"ת',    mono:'הפ', city:'פתח תקווה',      stadium:'אצטדיון המושבה, פתח תקווה',   accent:'#CB3A2E', engName:'Hapoel Petah Tikva'},
+    {id:'ms_ashdod',           name:'מ.ס אשדוד',          short:'מ.ס אשדוד',    mono:'אש', city:'אשדוד',          stadium:'אצטדיון י"א, אשדוד',          accent:'#E2A63B', engName:'Ashdod'},
+    {id:'maccabi_bnei_reina',  name:'מכבי בני ריינה',     short:'בני ריינה',    mono:'בר', city:'ריינה',          stadium:'האצטדיון העירוני, ריינה',     accent:'#2E9E52', engName:'Bnei Reineh'},
+    {id:'ironi_tiberias',      name:'עירוני טבריה',       short:'עירוני טבריה', mono:'עט', city:'טבריה',          stadium:'האצטדיון העירוני, טבריה',     accent:'#7A2048', engName:'Ironi Tiberias'},
+    {id:'ironi_kiryat_shmona', name:'עירוני קריית שמונה', short:'קריית שמונה',  mono:'קש', city:'קריית שמונה',    stadium:'האצטדיון העירוני, קריית שמונה', accent:'#E8641E', engName:'Ironi Kiryat Shmona'},
   ];
 
   // representative rival per club (real geographic/historic derbies) — used
@@ -1408,6 +1419,9 @@
 
     document.title = 'FanZone · ' + club.name;
     currentClub = club;
+
+    fetchRealNews(club);
+    fetchRealScores(club);
   }
 
   // ---------- onboarding ----------
@@ -1789,11 +1803,91 @@
     openSheet(n.title, `<div style="font-size:13px; line-height:1.7; color:var(--text);">${n.body}</div>`);
   }
   function newsAllHTML(){
+    if(realNewsItems && realNewsItems.length){
+      return `<div style="display:flex; flex-direction:column; gap:14px;">${realNewsItems.map(it => `
+        <a href="${it.link}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+          <div style="font-weight:700; font-size:13px; line-height:1.4;">${escapeHTML(it.title)}</div>
+          <div style="font-size:11px; color:var(--text-2); margin-top:2px;">${escapeHTML(it.source || '')} · ${timeAgoHe(it.pubDate)}</div>
+        </a>`).join('')}</div>`;
+    }
     return `<div style="display:flex; flex-direction:column; gap:14px;">
       <div><div style="font-weight:700; font-size:13px;">רשמי: שני שחקנים חדשים מצטרפים לסגל</div><div style="font-size:11px; color:var(--text-2); margin-top:2px;">לפני שעה</div></div>
       <div><div style="font-weight:700; font-size:13px;">קפטן הקבוצה: "אנחנו לא מסתכלים על הטבלה"</div><div style="font-size:11px; color:var(--text-2); margin-top:2px;">לפני 4 שעות</div></div>
       <div><div style="font-weight:700; font-size:13px;">כרטיסים למשחק הבא נפתחו למכירה</div><div style="font-size:11px; color:var(--text-2); margin-top:2px;">אתמול</div></div>
     </div>`;
+  }
+
+  // ---------- real data: news + scores (Vercel-only /api endpoints) ----------
+  // On GitHub Pages or a local file these fetches simply fail and the code
+  // quietly falls back to the static demo content above — nothing breaks.
+  let realNewsItems = null;
+
+  function timeAgoHe(pubDate){
+    const d = new Date(pubDate);
+    if(isNaN(d)) return '';
+    const diffMin = Math.max(1, Math.round((Date.now() - d.getTime()) / 60000));
+    if(diffMin < 60) return `לפני ${diffMin} דק'`;
+    const diffHr = Math.round(diffMin / 60);
+    if(diffHr < 24) return `לפני ${diffHr} שעות`;
+    const diffDay = Math.round(diffHr / 24);
+    return `לפני ${diffDay} ${diffDay === 1 ? 'יום' : 'ימים'}`;
+  }
+
+  function renderRealNews(){
+    if(!realNewsItems || !realNewsItems.length) return;
+    const host = document.getElementById('newsHscroll');
+    const tag = document.getElementById('newsSourceTag');
+    if(!host) return;
+    host.innerHTML = realNewsItems.slice(0, 6).map((it, i) => `
+      <div class="news-card real" data-action="open-real-news" data-idx="${i}">
+        <div class="news-thumb"><span class="tag">${escapeHTML(it.source || 'חדשות')}</span></div>
+        <div class="news-body"><div class="t">${escapeHTML(it.title)}</div><div class="m">${timeAgoHe(it.pubDate)}</div></div>
+      </div>`).join('');
+    if(tag) tag.style.display = '';
+  }
+
+  async function fetchRealNews(club){
+    try{
+      const r = await fetch('/api/news?q=' + encodeURIComponent(club.name + ' כדורגל'));
+      if(!r.ok) return;
+      const data = await r.json();
+      if(!data.ok || !data.items || !data.items.length) return;
+      realNewsItems = data.items;
+      renderRealNews();
+    }catch(e){ /* offline / not on Vercel — keep static demo news */ }
+  }
+
+  function fmtFixtureDate(dstr){
+    const d = new Date(dstr);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('he-IL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+  }
+
+  function renderRealScores(data){
+    const slot = document.getElementById('realScoreSlot');
+    if(!slot) return;
+    if(!data.found){ slot.innerHTML = ''; return; }
+    let html = `<div class="card real-score-card"><div style="font-size:12px; font-weight:800;">נתונים אמיתיים <span class="live-source-tag" style="display:inline-block;">API-Football</span></div>`;
+    if(data.last && data.last.teams){
+      const g = data.last.goals, tm = data.last.teams;
+      html += `<div class="real-score-row"><span class="l">משחק אחרון</span><span class="v">${escapeHTML(tm.home.name)} ${g.home}:${g.away} ${escapeHTML(tm.away.name)}</span></div>`;
+    }
+    if(data.next && data.next.teams){
+      html += `<div class="real-score-row"><span class="l">המשחק הבא בפועל</span><span class="v">${escapeHTML(data.next.teams.home.name)} נגד ${escapeHTML(data.next.teams.away.name)} · ${fmtFixtureDate(data.next.fixture.date)}</span></div>`;
+    }
+    html += `</div>`;
+    slot.innerHTML = html;
+  }
+
+  async function fetchRealScores(club){
+    const slot = document.getElementById('realScoreSlot');
+    try{
+      const r = await fetch('/api/scores?team=' + encodeURIComponent(club.engName || club.name));
+      if(!r.ok) return;
+      const data = await r.json();
+      if(!data.configured){ if(slot) slot.innerHTML = ''; return; }
+      renderRealScores(data);
+    }catch(e){ if(slot) slot.innerHTML = ''; }
   }
   function tableFullHTML(){
     const home = currentClub || CLUBS[0];
@@ -2033,6 +2127,11 @@
       case 'vote-poll': votePoll(1, el.dataset.opt); break;
       case 'vote-poll2': votePoll(2, el.dataset.opt); break;
       case 'open-news': openNews(el.dataset.news); break;
+      case 'open-real-news': {
+        const it = realNewsItems && realNewsItems[parseInt(el.dataset.idx, 10)];
+        if(it) window.open(it.link, '_blank', 'noopener');
+        break;
+      }
       case 'news-all': openSheet('כל החדשות', newsAllHTML()); break;
       case 'table-full': openSheet('טבלת הליגה', tableFullHTML()); break;
       case 'task-tap': tapWeeklyTask(); break;
