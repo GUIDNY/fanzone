@@ -1,90 +1,71 @@
-// Real historical fixture data via API-Football (https://www.api-football.com).
-// Requires an API_FOOTBALL_KEY environment variable (Vercel Settings ->
-// Environment Variables). Until it exists, this endpoint answers
-// { configured:false } and the app quietly keeps its simulated demo.
+// Real, current match data via TheSportsDB's free public API — no key,
+// no signup, no cost. Not minute-by-minute live in-play scores (that
+// needs their paid tier), but genuinely current: the real last result
+// and real next fixture for each club, refreshed continuously.
 //
-// Note: the free API-Football plan does not include the current season,
-// live scores, or the next/last shortcut params — only seasons 2022-2024.
-// So instead of "next match" (which the free plan can't provide), this
-// surfaces something still genuinely real: the most recent finished
-// result from the 2024/25 season, and the last head-to-head meeting
-// between the selected club and its rival when one occurred that season.
-const API_BASE = 'https://v3.football.api-sports.io';
-const SEASON = 2024; // most recent season available on the free plan
+// Team IDs are hardcoded rather than resolved by live search: TheSportsDB's
+// free-text team search is inconsistent for a few of these clubs (it can
+// return an unrelated same-name basketball club, or miss a club entirely
+// depending on exact spelling/hyphenation). Each ID below was verified
+// directly against TheSportsDB's own league event listings.
+const TSDB_TEAM_ID = {
+  maccabi_tel_aviv: '134315',
+  hapoel_tel_aviv: '134124',
+  maccabi_haifa: '134400',
+  hapoel_haifa: '135995',
+  beitar: '135992',
+  hapoel_jerusalem: '141235',
+  hapoel_beer_sheva: '134799',
+  bnei_sakhnin: '135994',
+  maccabi_netanya: '134087',
+  hapoel_petah_tikva: '141238',
+  ms_ashdod: '135991',
+  maccabi_bnei_reina: '141801',
+  ironi_tiberias: '146401',
+  ironi_kiryat_shmona: '133950',
+};
 
-async function apiFootball(path, key) {
-  const r = await fetch(API_BASE + path, { headers: { 'x-apisports-key': key } });
-  if (!r.ok) throw new Error('api-football status ' + r.status);
+const TSDB_BASE = 'https://www.thesportsdb.com/api/v1/json/3';
+
+async function tsdb(path) {
+  const r = await fetch(TSDB_BASE + path);
+  if (!r.ok) throw new Error('thesportsdb status ' + r.status);
   return r.json();
 }
 
-const teamCache = new Map();
-async function resolveTeamId(name, key) {
-  if (teamCache.has(name)) return teamCache.get(name);
-  // api-football rejects combining "search" with "country" in one call,
-  // so search alone and prefer an Israeli match from the results.
-  const data = await apiFootball(`/teams?search=${encodeURIComponent(name)}`, key);
-  const list = (data.response || []).map(r => r.team).filter(Boolean);
-  const team = list.find(t => t.country === 'Israel') || list[0];
-  const id = team ? team.id : null;
-  teamCache.set(name, id);
-  return id;
-}
-
-const fixturesCache = new Map();
-async function fetchSeasonFixtures(teamId, key) {
-  const cacheKey = String(teamId);
-  if (fixturesCache.has(cacheKey)) return fixturesCache.get(cacheKey);
-  const data = await apiFootball(`/fixtures?team=${teamId}&season=${SEASON}`, key);
-  const list = (data.response || []).filter(f => f.fixture && f.fixture.status && f.fixture.status.short === 'FT');
-  list.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
-  fixturesCache.set(cacheKey, list);
-  return list;
+function pickEvent(e) {
+  if (!e) return null;
+  return {
+    date: e.dateEvent,
+    time: e.strTime || null,
+    home: e.strHomeTeam,
+    away: e.strAwayTeam,
+    homeScore: e.intHomeScore,
+    awayScore: e.intAwayScore,
+    league: e.strLeague,
+    venue: e.strVenue || null,
+  };
 }
 
 module.exports = async function handler(req, res) {
-  const key = process.env.API_FOOTBALL_KEY;
-  if (!key) {
-    res.status(200).json({ configured: false });
-    return;
-  }
   try {
-    const teamName = (req.query.team || '').toString();
-    const rivalName = (req.query.rival || '').toString();
-    if (!teamName) {
-      res.status(400).json({ configured: true, error: 'missing "team" query param' });
-      return;
-    }
-
-    const teamId = await resolveTeamId(teamName, key);
+    const clubId = (req.query.club || '').toString();
+    const teamId = TSDB_TEAM_ID[clubId];
     if (!teamId) {
       res.status(200).json({ configured: true, found: false });
       return;
     }
 
-    const fixtures = await fetchSeasonFixtures(teamId, key);
-    if (!fixtures.length) {
-      res.status(200).json({ configured: true, found: false, season: SEASON });
-      return;
-    }
+    const [lastData, nextData] = await Promise.all([
+      tsdb(`/eventslast.php?id=${teamId}`),
+      tsdb(`/eventsnext.php?id=${teamId}`),
+    ]);
 
-    let headToHead = null;
-    if (rivalName) {
-      const rivalId = await resolveTeamId(rivalName, key);
-      if (rivalId) {
-        headToHead = fixtures.find(f => f.teams.home.id === rivalId || f.teams.away.id === rivalId) || null;
-      }
-    }
+    const last = pickEvent((lastData.results || [])[0]);
+    const next = pickEvent((nextData.events || [])[0]);
 
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
-    res.status(200).json({
-      configured: true,
-      found: true,
-      season: SEASON,
-      teamId,
-      lastMatch: fixtures[0] || null,
-      headToHead,
-    });
+    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=1800');
+    res.status(200).json({ configured: true, found: true, last, next });
   } catch (err) {
     res.status(200).json({ configured: true, error: String(err && err.message || err) });
   }

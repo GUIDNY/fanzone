@@ -1955,29 +1955,31 @@
     `);
   }
 
-  function fmtFixtureDate(dstr){
-    const d = new Date(dstr);
-    if(isNaN(d)) return '';
-    return d.toLocaleDateString('he-IL', {day:'numeric', month:'short', year:'numeric'});
+  function fmtFixtureDate(dstr, tstr){
+    const d = new Date(dstr + (tstr ? 'T' + tstr : ''));
+    if(isNaN(d)) return dstr || '';
+    const opts = tstr ? {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'} : {day:'numeric', month:'short', year:'numeric'};
+    return d.toLocaleDateString('he-IL', opts);
   }
-  function fmtFixtureLine(f){
-    return `${f.teams.home.name} ${f.goals.home}:${f.goals.away} ${f.teams.away.name}`;
+  function fmtEventLine(e){
+    const hs = e.homeScore !== null && e.homeScore !== undefined ? e.homeScore : '?';
+    const as = e.awayScore !== null && e.awayScore !== undefined ? e.awayScore : '?';
+    return `${e.home} ${hs}:${as} ${e.away}`;
   }
 
   function renderRealScores(data){
     const slot = document.getElementById('realScoreSlot');
     if(!slot) return;
-    if(!data.found){ slot.innerHTML = ''; return; }
-    const seasonLabel = `${data.season}/${String(data.season + 1).slice(2)}`;
-    let html = `<div class="card real-score-card"><div style="font-size:12px; font-weight:800;">היסטוריה אמיתית <span class="live-source-tag" style="display:inline-block;">API-Football · עונת ${seasonLabel}</span></div>`;
-    if(data.headToHead){
-      html += `<div class="real-score-row"><span class="l">העימות האחרון בין הקבוצות</span><span class="v">${escapeHTML(fmtFixtureLine(data.headToHead))}</span></div>`;
-      html += `<div class="real-score-row"><span class="l">תאריך</span><span class="v">${fmtFixtureDate(data.headToHead.fixture.date)}</span></div>`;
-    } else if(data.lastMatch){
-      html += `<div class="real-score-row"><span class="l">התוצאה האחרונה שנמצאה</span><span class="v">${escapeHTML(fmtFixtureLine(data.lastMatch))}</span></div>`;
-      html += `<div class="real-score-row"><span class="l">תאריך</span><span class="v">${fmtFixtureDate(data.lastMatch.fixture.date)}</span></div>`;
+    if(!data.found || (!data.last && !data.next)){ slot.innerHTML = ''; return; }
+    let html = `<div class="card real-score-card"><div style="font-size:12px; font-weight:800;">נתונים אמיתיים <span class="live-source-tag" style="display:inline-block;">TheSportsDB</span></div>`;
+    if(data.last){
+      html += `<div class="real-score-row"><span class="l">התוצאה האחרונה</span><span class="v">${escapeHTML(fmtEventLine(data.last))}</span></div>`;
+      html += `<div class="real-score-row"><span class="l">תאריך · ליגה</span><span class="v">${fmtFixtureDate(data.last.date)} · ${escapeHTML(data.last.league || '')}</span></div>`;
     }
-    html += `<div style="font-size:10.5px; color:var(--text-2); margin-top:2px;">התוכנית החינמית של API-Football לא כוללת את העונה הנוכחית — אלו נתונים אמיתיים מהעונה האחרונה שזמינה.</div>`;
+    if(data.next){
+      html += `<div class="real-score-row"><span class="l">המשחק הבא בפועל</span><span class="v">${escapeHTML(data.next.home)} נגד ${escapeHTML(data.next.away)}</span></div>`;
+      html += `<div class="real-score-row"><span class="l">מתי</span><span class="v">${fmtFixtureDate(data.next.date, data.next.time)} · ${escapeHTML(data.next.league || '')}</span></div>`;
+    }
     html += `</div>`;
     slot.innerHTML = html;
   }
@@ -1985,10 +1987,7 @@
   async function fetchRealScores(club){
     const slot = document.getElementById('realScoreSlot');
     try{
-      const rival = CLUBS.find(c => c.id === RIVALS[club.id]);
-      const url = '/api/scores?team=' + encodeURIComponent(club.engName || club.name) +
-        (rival ? '&rival=' + encodeURIComponent(rival.engName || rival.name) : '');
-      const r = await fetch(url);
+      const r = await fetch('/api/scores?club=' + encodeURIComponent(club.id));
       if(!r.ok) return;
       const data = await r.json();
       if(!data.configured){ if(slot) slot.innerHTML = ''; return; }
